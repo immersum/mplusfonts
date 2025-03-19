@@ -1,0 +1,28 @@
+[package]
+name = "mplusfonts"
+version = "0.1.0"
+edition = "2024"
+description = "Parametrized bitmap font family for embedded-graphics"
+documentation = "https://docs.rs/mplusfonts"
+readme = true
+homepage = "https://crates.io/crates/mplusfonts"
+repository = "https://github.com/immersum/mplusfonts"
+license = "MIT OR Apache-2.0"
+keywords = ["bitmap", "font", "kanji", "monospaced", "variable-width"]
+categories = ["embedded", "graphics", "no-std", "no-std::no-alloc"]
+
+[dependencies]
+embedded-graphics = "0.8.1"
+mplusfonts-macros = { version = "=0.1.0", path = "macros" }
+defmt = "0.3.10"
+
+[dev-dependencies]
+embedded-graphics-simulator = "0.7.0"
+embedded-text = "0.7.2"
+chrono = { version = "0.4", features = ["clock"] }
+
+[features]
+defmt = ["embedded-graphics/defmt"]
+
+[workspace]
+members = ["macros"]
