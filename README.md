@@ -48,12 +48,12 @@ Adds an *optimal* subset of [**M<sup>+</sup> FONTS**] to your next embedded Rust
 
 ## Examples
 
-```
+```toml
 [dependencies]
 mplusfonts = "0.1"
 ```
 
-```
+```rust
 #[mplusfonts::strings]
 pub fn main() -> Result<(), Infallible> {
     const KB_OK: &str = "KB OK";

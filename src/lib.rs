@@ -75,8 +75,7 @@
 //! }
 //! ```
 //!
-//! For more examples, see the [examples](https://github.com/immersum/mplusfonts/examples)
-//! directory on GitHub.
+//! For more examples, see the [repository](https://github.com/immersum/mplusfonts) on GitHub.
 
 #![no_std]
 #![warn(missing_docs)]
