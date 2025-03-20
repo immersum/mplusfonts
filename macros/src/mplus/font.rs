@@ -15,7 +15,6 @@ pub use width::FontWidth;
 lazy_static_include_bytes! {
     MPLUS1 => "fonts/MPLUS1[wght].ttf",
     MPLUS2 => "fonts/MPLUS2[wght].ttf",
-    MPLUS1Code => "fonts/MPLUS1Code[wght].ttf",
     MPLUSCodeLatin => "fonts/MPLUSCodeLatin[wdth,wght].ttf",
 }
 
@@ -36,7 +35,7 @@ impl Font {
             Self::MPLUSCode {
                 fallback: (offset, key),
                 ..
-            } if is_fallback => (MPLUS1Code.as_ref(), offset, key),
+            } if is_fallback => (MPLUS1.as_ref(), offset, key),
             Self::MPLUSCode {
                 variable: (offset, key, _),
                 ..
@@ -119,7 +118,7 @@ impl TryFrom<syn::ExprCall> for Font {
         }
 
         let variable_font_ref = FontRef::from_index(&MPLUSCodeLatin, 0).expect("expected font");
-        let fallback_font_ref = FontRef::from_index(&MPLUS1Code, 0).expect("expected font");
+        let fallback_font_ref = FontRef::from_index(&MPLUS1, 0).expect("expected font");
         let font = Self::MPLUSCode {
             variable: (variable_font_ref.offset, variable_font_ref.key, width),
             fallback: (fallback_font_ref.offset, fallback_font_ref.key),

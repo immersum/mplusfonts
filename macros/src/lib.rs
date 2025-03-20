@@ -78,8 +78,8 @@ pub fn strings(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// * `font` - Typeface and font width. Specify `1` or `2` to use the respective variable-width
 ///   **M<sup>+</sup>** font or, for a monospaced font, specify `code`, which takes a `width`
-///   parameter and uses **M<sup>+</sup> Code Latin 50/60**, falling back to **M<sup>+</sup> 1
-///   Code** for glyphs that are not parametrized by width.
+///   parameter and uses **M<sup>+</sup> Code Latin 50/60**, falling back to **M<sup>+</sup> 1**
+///   for glyphs that are not parametrized by width.
 ///   * `code(width)` - Font width. Ranges from `100` to `125`. Only available as a parameter to
 ///     `code`.
 /// * `weight` - Font weight. Ranges from `100` to `900`. Capped at `700` for `code`.
