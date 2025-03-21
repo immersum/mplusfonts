@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.1] - 2025-03-21
+
+### Fixed
+
+- Standard ligatures such as _ff_ and _ffi_ appearing in monospaced text; this is now disabled.
+
 ## [0.1.0] - 2025-03-20
 
 ### Added
@@ -11,3 +17,4 @@
 - Fonts by Coji Morishita.
 
 [0.1.0]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.0
+[0.1.1]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.1

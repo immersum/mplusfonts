@@ -55,6 +55,7 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
         .builder(font_ref)
         .normalized_coords(&coords)
         .size(pixels_per_em)
+        .features(&[("liga", !is_fallback as u16)])
         .build();
 
     let mut context = ScaleContext::new();
