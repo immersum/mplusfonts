@@ -30,7 +30,7 @@ Adds an *optimal* subset of [**M<sup>+</sup> FONTS**] to your next embedded Rust
 [`swash`]: https://crates.io/crates/swash
 [`mplusfonts`]: https://crates.io/crates/mplusfonts
 [`mplus!`]: https://docs.rs/mplusfonts/latest/mplusfonts/macro.mplus.html
-[`strings`]: https://docs.rs/mplusfonts/latest/mplusfonts/macro.strings.html
+[`strings`]: https://docs.rs/mplusfonts/latest/mplusfonts/attr.strings.html
 [LICENSE]: macros/fonts/LICENSE
 
 [^2]: <https://mplusfonts.github.io/#variable>
