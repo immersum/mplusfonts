@@ -22,6 +22,11 @@ regex = "1.11.1"
 swash = "0.2.1"
 syn = { version = "2.0", features = ["full", "visit-mut"] }
 
+[dev-dependencies]
+embedded-graphics = "0.8.1"
+embedded-graphics-simulator = "0.7.0"
+mplusfonts = "0.1"
+
 [features]
 # Enables strings to be expanded into a doc-comment for inspection.
 doc-comment = []

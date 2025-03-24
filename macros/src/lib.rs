@@ -130,11 +130,27 @@ pub fn strings(args: TokenStream, input: TokenStream) -> TokenStream {
 /// # Examples
 ///
 /// ```
-/// mplus!(1, 750, x_height(5), false, 2, 4, ["Yes", "No"])
-/// mplus!(1, 525, cap_height(7), false, 2, 4, ["キャンセル"])
-/// mplus!(2, BOLD, line_height(20), false, 2, 4, ["Tokyo"], ["東京"])
-/// mplus!(code(100), SEMI_BOLD, 18, true, 1, 4, '0'..='9', [",.-"])
-/// mplus!(code(125), 480, 13.5, true, 1, 4, 'A'..='Z', 'ぁ'..='ゖ')
+/// # use mplusfonts::mplus;
+/// #
+/// mplus!(1, 750, x_height(5), false, 2, 4, ["Yes", "No"]);
+/// mplus!(1, 525, cap_height(7), false, 2, 4, ["キャンセル"]);
+/// mplus!(2, BOLD, line_height(20), false, 2, 4, ["Tokyo"], ["東京"]);
+/// mplus!(code(100), SEMI_BOLD, 18, true, 1, 4, '0'..='9', [",.-"]);
+/// mplus!(code(125), 480, 13.5, true, 1, 4, 'A'..='Z', 'ぁ'..='ゖ');
+/// ```
+///
+/// The amount of flash memory (storage space for `.rodata`) that is going to be used, will be a
+/// few **kilobytes**. In all of these examples, specifying `..` for `sources` and including all
+/// characters would change the size of each bitmap font to approximately _2_–_3_ **megabytes**.
+///
+/// ## All-inclusive bitmap font
+///
+/// The following example produces a binary output that is approximately _16_ megabytes in size:
+///
+/// ```
+/// # use mplusfonts::mplus;
+/// #
+/// mplus!(1, 500, 50, true, 4, 8, .., ["ff", "fi", "ffi", "fl", "ffl"]);
 /// ```
 #[proc_macro]
 pub fn mplus(input: TokenStream) -> TokenStream {
