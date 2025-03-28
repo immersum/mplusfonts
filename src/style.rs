@@ -58,7 +58,7 @@ where
 {
     /// Creates a new style with the specified bitmap font and text color.
     pub const fn new(font: &'b BitmapFont<'a, C, N>, text_color: T) -> Self {
-        BitmapFontStyleBuilder::new()
+        BitmapFontStyleBuilder::<'_, '_, _, BinaryColor, 0>::new()
             .text_color(text_color)
             .font(font)
             .build()
