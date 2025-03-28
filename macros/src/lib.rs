@@ -74,6 +74,8 @@ pub fn strings(args: TokenStream, input: TokenStream) -> TokenStream {
 /// [`BitmapFontStyle`](../mplusfonts/struct.BitmapFontStyle.html), the intended consumer of the
 /// generated data.
 ///
+/// [`include_bytes!`]: https://doc.rust-lang.org/core/macro.include_bytes.html
+///
 /// # Arguments
 ///
 /// * `font` - Typeface and font width. Specify `1` or `2` to use the respective variable-width
