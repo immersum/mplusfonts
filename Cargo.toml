@@ -1,6 +1,6 @@
 [package]
 name = "mplusfonts"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "Parametrized bitmap font family for embedded-graphics"
 documentation = "https://docs.rs/mplusfonts"
@@ -13,7 +13,7 @@ categories = ["embedded", "graphics", "no-std", "no-std::no-alloc"]
 
 [dependencies]
 embedded-graphics = "0.8.1"
-mplusfonts-macros = { version = "=0.1.1", path = "macros" }
+mplusfonts-macros = { version = "=0.1.2", path = "macros" }
 defmt = "0.3.10"
 
 [dev-dependencies]
