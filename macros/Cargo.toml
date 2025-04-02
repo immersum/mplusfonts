@@ -19,7 +19,7 @@ lazy-static-include = "3.2.1"
 proc-macro2 = { version = "1.0", features = ["span-locations"] }
 quote = "1.0"
 regex = "1.11.1"
-swash = "0.2.1"
+swash = "0.2.2"
 syn = { version = "2.0", features = ["full", "visit-mut"] }
 
 [dev-dependencies]
