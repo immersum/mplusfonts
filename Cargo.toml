@@ -14,7 +14,7 @@ categories = ["embedded", "graphics", "no-std", "no-std::no-alloc"]
 [dependencies]
 embedded-graphics = "0.8.1"
 mplusfonts-macros = { version = "=0.1.2", path = "macros" }
-defmt = "1.0"
+defmt = { version = "1.0", optional = true }
 
 [dev-dependencies]
 embedded-graphics-simulator = "0.7.0"
@@ -22,7 +22,7 @@ embedded-text = "0.7.2"
 chrono = { version = "0.4", features = ["clock"] }
 
 [features]
-defmt = ["embedded-graphics/defmt"]
+defmt = ["dep:defmt", "embedded-graphics/defmt"]
 
 [workspace]
 members = ["macros"]
