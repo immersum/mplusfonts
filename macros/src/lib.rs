@@ -104,7 +104,19 @@ pub fn strings(args: TokenStream, input: TokenStream) -> TokenStream {
 ///   the individual strings here; otherwise, this instance returns boxes (image representations of
 ///   `.notdef`) when looking up glyph data.
 ///   * Ranges of character literals. Use this option for arbitrary strings created at runtime.
+///     * `range` - All characters in the specified range so long as **M<sup>+</sup>** provides the
+///       glyphs. Recommended for including digits, kana, and for letters in monospaced fonts only.
+///     * `kern(range, slice)` - The same characters as with separate `range` and `slice` sources,
+///       but with kerning information included with each character in order to cover all possible
+///       sequences of characters, interleaved with the specified strings. The `kern` function-like
+///       helper takes two parameters, the first is a range of character literals, and the second
+///       is an array of string literals. Recommended for populating variable-width bitmap fonts
+///       with letters in Latin-script alphabets.
 ///   * Arrays of string literals. Specify all static text in any order, grouped in any manner.
+///     * `slice` - All characters that occur in the specified strings. Recommended when the text
+///       fragments to be rendered are known at compile-time. Only includes the kerning information
+///       for the sequences of characters as they appear. Part of the [`macro@strings`]
+///       infrastructure.
 ///
 /// The optional `sources` argument makes this a variadic-function-like procedural macro.
 ///
@@ -132,11 +144,12 @@ pub fn strings(args: TokenStream, input: TokenStream) -> TokenStream {
 /// # Examples
 ///
 /// ```
-/// # use mplusfonts::mplus;
+/// # use mplusfonts_macros::mplus;
 /// #
 /// mplus!(1, 750, x_height(5), false, 2, 4, ["Yes", "No"]);
 /// mplus!(1, 525, cap_height(7), false, 2, 4, ["キャンセル"]);
 /// mplus!(2, BOLD, line_height(20), false, 2, 4, ["Tokyo"], ["東京"]);
+/// mplus!(2, 575, line_height(20), true, 4, 4, kern(' '..='ȷ', ["ffi", "ffl"]));
 /// mplus!(code(100), SEMI_BOLD, 18, true, 1, 4, '0'..='9', [",.-"]);
 /// mplus!(code(125), 480, 13.5, true, 1, 4, 'A'..='Z', 'ぁ'..='ゖ');
 /// ```
@@ -147,12 +160,13 @@ pub fn strings(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// ## All-inclusive bitmap font
 ///
-/// The following example produces a binary output that is approximately _16_ megabytes in size:
+/// The following examples produce binary outputs that are approximately _16_ megabytes in size:
 ///
 /// ```
-/// # use mplusfonts::mplus;
+/// # use mplusfonts_macros::mplus;
 /// #
 /// mplus!(1, 500, 50, true, 4, 8, .., ["ff", "fi", "ffi", "fl", "ffl"]);
+/// mplus!(1, 500, 50, true, 4, 8, kern(.., ["ffi", "ffl"]));
 /// ```
 #[proc_macro]
 pub fn mplus(input: TokenStream) -> TokenStream {

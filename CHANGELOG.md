@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.3] - 2025-04-03
+
+### Added
+
+- The `kern` helper that can be used to create variable-width bitmap fonts with font-based kerning
+  when populated using character ranges. This was previously only possible when specifying strings.
+
+### Changed
+
+- Upgrade dependencies: `defmt 1.0` and `swash 0.2.2`.
+
 ## [0.1.2] - 2025-03-28
 
 ### Fixed
@@ -25,3 +36,4 @@
 [0.1.0]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.0
 [0.1.1]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.1
 [0.1.2]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.2
+[0.1.3]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.3

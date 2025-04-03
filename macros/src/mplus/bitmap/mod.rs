@@ -71,7 +71,7 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
     let sources: Vec<_> = args
         .sources
         .iter()
-        .map(|source| source.strings(is_code))
+        .flat_map(|source| source.strings(is_code))
         .collect();
 
     let mut strings = sources
@@ -112,7 +112,7 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
         let entry_key = match String::from_utf8(bytes) {
             Ok(substring) => substring,
             Err(e) => {
-                let message = format!("expected char boundary at bytes `{start}` and `{end}`");
+                let message = format!("expected character boundary at bytes `{start}` and `{end}`");
                 debug_assert_eq!(None, Some(e), r#"indexing into `"{string}"`, {message}"#);
                 return;
             }
