@@ -8,13 +8,6 @@ Adds an *optimal* subset of [**M<sup>+</sup> FONTS**] to your next embedded Rust
 `mplus!(code(120), 500, 15, false, 1, 8)`
 `mplus!(2, 800, 9, true, 16, 8)`")
 
-> [!NOTE]
-> Rust version `1.86` expects the use of the turbofish syntax with `BitmapFontStyleBuilder::new()`.
->
-> An error code `E0271` indicates that you are using version `0.1.0` or `0.1.1` of this crate.
->
-> **To continue using this crate, update `mplusfonts` to version `0.1.2`.**
-
 [^1]: Rust 2024 is required to build this crate
 
 ## Features
