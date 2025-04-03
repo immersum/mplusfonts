@@ -26,7 +26,11 @@ syn = { version = "2.0", features = ["full", "visit-mut"] }
 embedded-graphics = "0.8.1"
 embedded-graphics-simulator = "0.7.0"
 mplusfonts = "0.1"
+seq-macro = "0.3.6"
 
 [features]
 # Enables strings to be expanded into a doc-comment for inspection.
 doc-comment = []
+
+# Enables the expected results to be generated for integration tests.
+bless-tests = []
