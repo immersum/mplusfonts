@@ -1,15 +1,20 @@
 name: Bug report
-description: Create a report to help us improve this crate.
+description: Create a report to help us improve
 labels: ["bug", "triage"]
 assignees:
   - immersum
 body:
   - type: markdown
     attributes:
-      value: |
-        Thanks for taking the time to fill out this bug report! Please make sure to fill out the entire form below, providing as much context as you can in order to help us triage and track down your bug as quickly as possible.
+      value: >
+        Thanks for taking the time to fill out this bug report! Please make sure to fill out the entire form below, providing
+        as much context as you can in order to help us triage and track down your bug as quickly as possible.
 
-        Before filing a bug, please be sure you have searched through [existing bugs](https://github.com/immersum/mplusfonts/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3Abug) to see if an existing issue covers your bug.
+        Before filing a bug, please be sure you have searched through [existing bugs] to see if an existing issue covers your
+        bug. Finally, please make sure that the bug is still present in the [latest] version of this crate.
+
+        [existing bugs]: https://github.com/immersum/mplusfonts/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3Abug
+        [latest]: https://crates.io/crates/mplusfonts
   - type: dropdown
     id: component
     attributes:
