@@ -1,0 +1,62 @@
+name: Bug report
+description: Create a report to help us improve this crate.
+labels: ["bug", "triage"]
+assignees:
+  - immersum
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! Please make sure to fill out the entire form below, providing as much context as you can in order to help us triage and track down your bug as quickly as possible.
+
+        Before filing a bug, please be sure you have searched through [existing bugs](https://github.com/immersum/mplusfonts/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3Abug) to see if an existing issue covers your bug.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component(s)
+      description: Which component(s) does your bug report concern?
+      multiple: true
+      options:
+        - examples
+        - macros/mplus
+        - macros/strings
+        - BitmapFont
+        - BitmapFontStyle
+        - BitmapFontStyleBuilder
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the issue here.
+      value: |
+        ## Description
+
+        ## Expected result
+
+        ## Actual result
+
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal code to reproduce the issue.
+      render: rust
+  - type: input
+    id: version
+    attributes:
+      label: Crate version
+      description: What version did you use? (e.g., `v0.1.3`, `72906dc`, etc)
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment information
+      description: Additional information about your development environment.
+      value: |
+        ## Environment
+        OS: (e.g., "Arch Linux")
+        Compiler: (e.g., "rustc 1.86.0")
+
