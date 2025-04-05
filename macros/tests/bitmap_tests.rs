@@ -105,13 +105,18 @@ test_render_glyphs! {
         seq!(C in 'ƀ'..'ɐ' { [#(concat!(C),)* "ff", "fi", "ffi", "fl", "ffl"] }),
         include!("bitmap/render_glyphs_2_500_25_false_1_4_kern_latin_ext_b_liga.in"),
 
-    render_glyphs_code_100_false_1_4_hiragana_kanji,
+    render_glyphs_code_100_500_25_false_1_4_hiragana_kanji,
         mplus!(code(100), 500, 25, false, 1, 4, 'ぁ'..='ゖ', 'ゝ'..='ゟ', ["東京", "京都"]),
         seq!(C in 'ぁ'..='ゟ' { [#(concat!(C),)* "東", "京", "都"] }),
         include!("bitmap/render_glyphs_code_100_500_25_false_1_4_hiragana_kanji.in"),
 
-    render_glyphs_code_125_false_1_4_katakana_kanji,
+    render_glyphs_code_125_500_25_false_1_4_katakana_kanji,
         mplus!(code(125), 500, 25, false, 1, 4, 'ァ'..='ヺ', 'ヽ'..='ヿ', ["東京", "京都"]),
         seq!(C in 'ァ'..='ヿ' { [#(concat!(C),)* "東", "京", "都"] }),
         include!("bitmap/render_glyphs_code_125_500_25_false_1_4_katakana_kanji.in"),
+
+    render_glyphs_1_500_25_false_1_4_kern_dotless_i_j_liga,
+        mplus!(1, 500, 25, false, 1, 4, kern('i'..='j', ["ı", "ȷ", "f", "ff", "fi", "ffi"])),
+        seq!(C in 'i'..='j' { [#(concat!(C),)* "ı", "ȷ", "f", "ff", "fi", "ffi"] }),
+        include!("bitmap/render_glyphs_1_500_25_false_1_4_kern_dotless_i_j_liga.in"),
 }
