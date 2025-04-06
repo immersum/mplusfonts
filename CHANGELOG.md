@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Improve `mplus!` macro expansion performance for when the `kern` helper is used.
+
 ## [0.1.3] - 2025-04-03
 
 ### Added

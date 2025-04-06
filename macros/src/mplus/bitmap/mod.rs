@@ -4,6 +4,7 @@ mod glyph;
 mod image;
 
 use std::collections::BTreeMap;
+use std::iter;
 
 use swash::scale::{Render, ScaleContext, Source};
 use swash::shape::ShapeContext;
@@ -76,15 +77,16 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
 
     let mut strings = sources
         .iter()
-        .flat_map(|source| source.iter())
-        .filter(|string| !string.is_empty());
+        .flat_map(|(source, needs_render)| source.iter().zip(iter::repeat(*needs_render)))
+        .filter(|(string, _)| !string.is_empty());
 
-    for string in strings.clone() {
+    for string in strings.clone().map(|(string, _)| string) {
         shaper.add_str(string);
         shaper.add_str("\n");
     }
 
     let mut string = "";
+    let mut needs_render = false;
     let mut newline = false;
     let mut previous = None;
     shaper.shape_with(|glyph_cluster| {
@@ -92,7 +94,7 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
         if start == 0 {
             newline = !newline;
             if newline {
-                string = strings.next().expect("expected string iterator to yield");
+                (string, needs_render) = strings.next().expect("expected string iterator to yield");
             } else {
                 return;
             }
@@ -104,7 +106,10 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
             .take(end as usize - start as usize)
             .collect();
 
-        debug_assert_ne!(0, bytes.len(), r#"indexing into `"{string}"`, out of bounds at `{end}`"#);
+        debug_assert!(
+            !bytes.is_empty(),
+            "indexing into `{string:?}`, out of bounds at `{end}`"
+        );
         if bytes.is_empty() {
             return;
         }
@@ -113,7 +118,7 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
             Ok(substring) => substring,
             Err(e) => {
                 let message = format!("expected character boundary at bytes `{start}` and `{end}`");
-                debug_assert_eq!(None, Some(e), r#"indexing into `"{string}"`, {message}"#);
+                debug_assert_eq!(None, Some(e), "indexing into `{string:?}`, {message}");
                 return;
             }
         };
@@ -151,24 +156,30 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
                         images: ImageList(Vec::new()),
                     };
 
-                    let ImageList(ref mut images) = glyph.images;
-                    let is_square = advance_width == advance_height;
-                    let positions = if is_code || is_square { 1 } else { positions };
-                    for index in 0..positions {
-                        let x_offset = f32::from(index) / f32::from(positions);
-                        let image = Render::new(&[Source::Outline])
-                            .offset(Vector::new(x_offset, 0.0))
-                            .render(&mut scaler, glyph.id)
-                            .expect("expected glyph outline");
+                    if needs_render || glyph_cluster.is_ligature() {
+                        let ImageList(ref mut images) = glyph.images;
+                        let is_square = advance_width == advance_height;
+                        let positions = if is_code || is_square { 1 } else { positions };
+                        for index in 0..positions {
+                            let x_offset = f32::from(index) / f32::from(positions);
+                            let image = Render::new(&[Source::Outline])
+                                .offset(Vector::new(x_offset, 0.0))
+                                .render(&mut scaler, glyph.id)
+                                .expect("expected glyph outline");
 
-                        let image = Image {
-                            left: image.placement.left,
-                            top: image.placement.top,
-                            width: image.placement.width,
-                            data: color::quantize(&image.data, image.placement.width, bit_depth),
-                        };
+                            let image = Image {
+                                left: image.placement.left,
+                                top: image.placement.top,
+                                width: image.placement.width,
+                                data: color::quantize(
+                                    &image.data,
+                                    image.placement.width,
+                                    bit_depth,
+                                ),
+                            };
 
-                        images.push(image);
+                            images.push(image);
+                        }
                     }
 
                     glyphs.push(glyph);
@@ -203,7 +214,7 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
                     if let Some(previous_advance_width_to_entry) = previous_advance_width_to_entry {
                         debug_assert_eq!(
                             previous_advance_width_to_entry, advance_width_to_entry,
-                            r#"expected equal previous advance width for entry key `"{previous_key}"`"#
+                            "expected equal previous advance width for entry key `{previous_key:?}`"
                         );
                     }
                 }

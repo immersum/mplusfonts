@@ -38,14 +38,20 @@ impl ToTokens for ImageList {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let Self(vec) = self;
 
-        let image_set = if let [image] = vec.as_slice() {
-            quote! {
+        debug_assert!(
+            !vec.is_empty(),
+            "expected image list to contain at least one render"
+        );
+        let image_set = match vec.as_slice() {
+            [] => quote! {
+                ::mplusfonts::image::ImageSet::Repeated(::mplusfonts::image::Image::NULL)
+            },
+            [image] => quote! {
                 ::mplusfonts::image::ImageSet::Repeated(#image)
-            }
-        } else {
-            quote! {
+            },
+            _ => quote! {
                 ::mplusfonts::image::ImageSet::Array([#(#vec),*])
-            }
+            },
         };
 
         tokens.extend(image_set);
