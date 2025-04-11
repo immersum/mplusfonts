@@ -27,7 +27,7 @@ impl FromIterator<(String, CharmapEntry)> for Charmap {
         let mut charmap = BTreeMap::new();
         for (key, group) in groups {
             let charmap = charmap.insert(key, Self::from_iter(group));
-            debug_assert!(charmap.is_none(), "expected unique key: `'{key}'`");
+            debug_assert!(charmap.is_none(), "expected unique key: `{key:?}`");
         }
 
         Charmap(payload, charmap)

@@ -100,29 +100,9 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
             }
         }
 
-        let bytes: Vec<_> = string
-            .bytes()
-            .skip(start as usize)
-            .take(end as usize - start as usize)
-            .collect();
-
-        debug_assert!(
-            !bytes.is_empty(),
-            "indexing into `{string:?}`, out of bounds at `{end}`"
-        );
-        if bytes.is_empty() {
+        let Ok(entry_key) = try_to_entry_key(string, start as usize, end as usize) else {
             return;
-        }
-
-        let entry_key = match String::from_utf8(bytes) {
-            Ok(substring) => substring,
-            Err(e) => {
-                let message = format!("expected character boundary at bytes `{start}` and `{end}`");
-                debug_assert_eq!(None, Some(e), "indexing into `{string:?}`, {message}");
-                return;
-            }
         };
-
         let entry_glyphs = glyph_cluster
             .glyphs
             .iter()
@@ -198,26 +178,14 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
                 return;
             }
 
-            let mut entry_advance_width: f32 = entry_glyphs.map(|glyph| glyph.advance).sum();
+            let mut advance_width: f32 = entry_glyphs.map(|glyph| glyph.advance).sum();
             if is_code {
-                entry_advance_width = entry_advance_width.floor();
+                advance_width = advance_width.floor();
             }
 
-            let previous = previous.replace((entry_key.clone(), entry_advance_width));
-            if let Some((previous_key, advance_width_to_entry)) = previous {
-                let previous_entry = entries.get_mut(&previous_key).expect("expected entry");
-                if previous_entry.advance_width != advance_width_to_entry {
-                    let previous_advance_width_to_entry = previous_entry
-                        .advance_width_to
-                        .insert(entry_key, advance_width_to_entry);
-
-                    if let Some(previous_advance_width_to_entry) = previous_advance_width_to_entry {
-                        debug_assert_eq!(
-                            previous_advance_width_to_entry, advance_width_to_entry,
-                            "expected equal previous advance width for entry key `{previous_key:?}`"
-                        );
-                    }
-                }
+            let to_entry_key = entry_key.clone();
+            if let Some((entry_key, advance_width)) = previous.replace((entry_key, advance_width)) {
+                update_advance_widths(&mut entries, entry_key, to_entry_key, advance_width);
             }
         } else {
             previous = None;
@@ -225,4 +193,41 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
     });
 
     entries
+}
+
+fn try_to_entry_key(string: &str, start: usize, end: usize) -> Result<String, ()> {
+    let bytes: Vec<_> = string.bytes().skip(start).take(end - start).collect();
+
+    debug_assert!(
+        !bytes.is_empty(),
+        "indexing into `{string:?}`, out of bounds at `{end}`"
+    );
+    let entry_key = match String::from_utf8(bytes) {
+        Ok(substring) if substring.is_empty() => return Err(()),
+        Ok(substring) => substring,
+        Err(e) => {
+            let message = format!("expected character boundary at bytes `{start}` and `{end}`");
+            debug_assert_eq!(None, Some(e), "indexing into `{string:?}`, {message}");
+            return Err(());
+        }
+    };
+
+    Ok(entry_key)
+}
+
+fn update_advance_widths(
+    entries: &mut BTreeMap<String, CharmapEntry>,
+    entry_key: String,
+    to_entry_key: String,
+    advance_width: f32,
+) {
+    let entry = entries.get_mut(&entry_key).expect("expected entry");
+    if entry.advance_width != advance_width {
+        if let Some(previous) = entry.advance_width_to.insert(to_entry_key, advance_width) {
+            debug_assert_eq!(
+                previous, advance_width,
+                "expected equal previous advance width for entry key `{entry_key:?}`"
+            );
+        }
+    }
 }
