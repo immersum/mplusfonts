@@ -1,10 +1,12 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.4] - 2025-04-17
 
 ### Changed
 
 - Improve `mplus!` macro expansion performance for when the `kern` helper is used.
+- Implementation of font rasterization to be multithreaded; this can only have a noticeable effect
+  when `positions` is greater than one.
 
 ## [0.1.3] - 2025-04-03
 
@@ -43,3 +45,4 @@
 [0.1.1]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.1
 [0.1.2]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.2
 [0.1.3]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.3
+[0.1.4]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.4

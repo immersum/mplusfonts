@@ -12,74 +12,71 @@ pub enum CharSource {
 }
 
 impl CharSource {
-    pub fn strings(&self, is_code: bool) -> impl IntoIterator<Item = (Cow<[String]>, bool)> {
+    pub fn strings(&self, is_code: bool) -> impl IntoIterator<Item = Cow<[String]>> {
         match *self {
-            CharSource::Strings(ref strings) => vec![(strings.into(), true)],
-            CharSource::Range(start, end) => {
-                let singles = single_char_strings(start, end);
+            CharSource::Strings(ref strings) => {
+                let array = [strings.into()];
 
-                vec![(singles.into(), true)]
+                Vec::from_iter(array)
+            }
+            CharSource::Range(start, end) => {
+                let array = [single_char_strings(start, end).into()];
+
+                Vec::from_iter(array)
             }
             CharSource::Kern(start, end, ref strings) if is_code => {
-                let singles = single_char_strings(start, end);
+                let array = [single_char_strings(start, end).into(), strings.into()];
 
-                vec![(singles.into(), true), (strings.into(), true)]
+                Vec::from_iter(array)
             }
             CharSource::Kern(bound @ Bound::Excluded(start), end, ref strings)
                 if start > '\u{24E}' =>
             {
-                let singles = single_char_strings(bound, end);
+                let array = [single_char_strings(bound, end).into(), strings.into()];
 
-                vec![(singles.into(), true), (strings.into(), true)]
+                Vec::from_iter(array)
             }
             CharSource::Kern(bound @ Bound::Included(start), end, ref strings)
                 if start > '\u{24F}' =>
             {
-                let singles = single_char_strings(bound, end);
+                let array = [single_char_strings(bound, end).into(), strings.into()];
 
-                vec![(singles.into(), true), (strings.into(), true)]
+                Vec::from_iter(array)
             }
             CharSource::Kern(start, bound @ Bound::Included(end), ref strings)
                 if end < '\u{250}' =>
             {
-                let singles = single_char_strings(start, bound);
-                let squared = strings_in_cartesian_square(start, bound);
-                let affixed = single_char_affixed_strings(start, bound, strings);
+                let array = [
+                    single_char_strings(start, bound).into(),
+                    strings.into(),
+                    strings_in_cartesian_square(start, bound).into(),
+                    single_char_affixed_strings(start, bound, strings).into(),
+                ];
 
-                vec![
-                    (singles.into(), true),
-                    (strings.into(), true),
-                    (squared.into(), false),
-                    (affixed.into(), false),
-                ]
+                Vec::from_iter(array)
             }
             CharSource::Kern(start, bound @ Bound::Excluded(end), ref strings)
                 if end < '\u{251}' =>
             {
-                let singles = single_char_strings(start, bound);
-                let squared = strings_in_cartesian_square(start, bound);
-                let affixed = single_char_affixed_strings(start, bound, strings);
+                let array = [
+                    single_char_strings(start, bound).into(),
+                    strings.into(),
+                    strings_in_cartesian_square(start, bound).into(),
+                    single_char_affixed_strings(start, bound, strings).into(),
+                ];
 
-                vec![
-                    (singles.into(), true),
-                    (strings.into(), true),
-                    (squared.into(), false),
-                    (affixed.into(), false),
-                ]
+                Vec::from_iter(array)
             }
             CharSource::Kern(start, end, ref strings) => {
                 let bound = Bound::Excluded('\u{250}');
+                let array = [
+                    single_char_strings(start, end).into(),
+                    strings.into(),
+                    strings_in_cartesian_square(start, bound).into(),
+                    single_char_affixed_strings(start, bound, strings).into(),
+                ];
 
-                let singles = single_char_strings(start, end);
-                let squared = strings_in_cartesian_square(start, bound);
-                let affixed = single_char_affixed_strings(start, bound, strings);
-
-                vec![
-                    (singles.into(), true),
-                    (strings.into(), true),
-                    (squared.into(), false),
-                    (affixed.into(), false),
-                ]
+                Vec::from_iter(array)
             }
         }
     }

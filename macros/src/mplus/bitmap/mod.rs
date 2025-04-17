@@ -4,10 +4,13 @@ mod glyph;
 mod image;
 
 use std::collections::BTreeMap;
-use std::iter;
+use std::collections::btree_map::Entry;
+use std::sync::{Mutex, RwLock};
+use std::{iter, thread};
 
-use swash::scale::{Render, ScaleContext, Source};
-use swash::shape::ShapeContext;
+use swash::GlyphMetrics;
+use swash::scale::{Render, ScaleContext, Scaler, Source};
+use swash::shape::{ShapeContext, Shaper};
 use swash::text::cluster::SourceRange;
 use swash::zeno::Vector;
 
@@ -19,8 +22,11 @@ pub use font::BitmapFont;
 pub use glyph::{Glyph, GlyphList};
 pub use image::{Image, ImageList};
 
+#[derive(Clone, Copy)]
+struct Entries<'a>(&'a RwLock<BTreeMap<String, CharmapEntry>>);
+
 pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, CharmapEntry> {
-    let mut entries = BTreeMap::new();
+    let entries = BTreeMap::new();
     let font = args.font.value();
     let font_ref = font.as_ref(is_fallback);
     let is_code = matches!(font, Font::MPLUSCode { .. });
@@ -51,148 +57,89 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
     let pixels_per_em = args.size.into_value();
     let glyph_metrics = font_ref.glyph_metrics(&coords).scale(pixels_per_em);
 
-    let mut context = ShapeContext::new();
-    let mut shaper = context
-        .builder(font_ref)
-        .normalized_coords(&coords)
-        .size(pixels_per_em)
-        .features(&[("liga", !is_fallback as u16)])
-        .build();
+    let mut contexts: Vec<_> = iter::repeat_with(ShapeContext::new)
+        .take(thread::available_parallelism().map(Into::into).unwrap_or(1))
+        .collect();
 
-    let mut context = ScaleContext::new();
-    let mut scaler = context
-        .builder(font_ref)
-        .normalized_coords(&coords)
-        .size(pixels_per_em)
-        .hint(args.hint.into_value())
-        .build();
+    let shapers = contexts.iter_mut().map(|context| {
+        context
+            .builder(font_ref)
+            .normalized_coords(&coords)
+            .size(pixels_per_em)
+            .features(&[("liga", !is_fallback as u16)])
+            .build()
+    });
 
     let positions = args.positions.into_value();
     let bit_depth = args.bit_depth.into_value();
-    let sources: Vec<_> = args
+
+    let mut contexts: Vec<_> = iter::repeat_with(ScaleContext::new)
+        .take(shapers.len() * positions as usize)
+        .collect();
+
+    let scalers = contexts.iter_mut().map(|context| {
+        context
+            .builder(font_ref)
+            .normalized_coords(&coords)
+            .size(pixels_per_em)
+            .hint(args.hint.into_value())
+            .build()
+    });
+
+    let mut scalers: Vec<_> = scalers.collect();
+    let scalers = scalers.chunks_mut(positions as usize);
+    let renders = scalers.map(|scalers| {
+        move |glyph_offsets| {
+            scale_glyph(
+                scalers,
+                is_code,
+                positions,
+                bit_depth,
+                &glyph_metrics,
+                glyph_offsets,
+            )
+        }
+    });
+
+    let strings: Vec<_> = args
         .sources
         .iter()
         .flat_map(|source| source.strings(is_code))
         .collect();
 
-    let mut strings = sources
+    let indices = 0..shapers.len();
+    let empties = iter::repeat_with(Vec::new).take(shapers.len());
+    let strings = strings
         .iter()
-        .flat_map(|(source, needs_render)| source.iter().zip(iter::repeat(*needs_render)))
-        .filter(|(string, _)| !string.is_empty());
+        .flat_map(|strings| strings.iter())
+        .filter(|string| !string.is_empty())
+        .zip(indices.cycle())
+        .fold(empties.collect(), |mut strings: Vec<_>, (string, index)| {
+            strings
+                .get_mut(index)
+                .expect("expected index to be less than number of shapers")
+                .push(string);
 
-    for string in strings.clone().map(|(string, _)| string) {
-        shaper.add_str(string);
-        shaper.add_str("\n");
-    }
+            strings
+        });
 
-    let mut string = "";
-    let mut needs_render = false;
-    let mut newline = false;
-    let mut previous = None;
-    shaper.shape_with(|glyph_cluster| {
-        let SourceRange { start, end } = glyph_cluster.source;
-        if start == 0 {
-            newline = !newline;
-            if newline {
-                (string, needs_render) = strings.next().expect("expected string iterator to yield");
-            } else {
-                return;
-            }
-        }
-
-        let Ok(entry_key) = try_to_entry_key(string, start as usize, end as usize) else {
-            return;
-        };
-        let entry_glyphs = glyph_cluster
-            .glyphs
-            .iter()
-            .filter(|glyph| glyph.id > 0 || entry_key == "\u{FFFD}");
-
-        if entry_glyphs.clone().count() > 0 || glyph_cluster.is_empty() {
-            entries.entry(entry_key.clone()).or_insert_with(|| {
-                let mut glyphs = Vec::new();
-                for glyph in entry_glyphs.clone() {
-                    let mut advance_width = glyph_metrics.advance_width(glyph.id);
-                    let mut advance_height = glyph_metrics.advance_height(glyph.id);
-                    if is_code {
-                        advance_width = advance_width.floor();
-                        advance_height = advance_height.floor();
-                    }
-
-                    let mut x_offset = if is_code { glyph.x.ceil() } else { glyph.x };
-                    let mut y_offset = glyph.y;
-                    if [812, 813, 814, 815, 817, 818, 819, 820, 821, 823, 825].contains(&glyph.id) {
-                        x_offset = 0.0;
-                        y_offset = 0.0;
-                    }
-
-                    let mut glyph = Glyph {
-                        x_offset,
-                        y_offset,
-                        positions,
-                        bit_depth,
-                        id: glyph.id,
-                        advance_width,
-                        images: ImageList(Vec::new()),
-                    };
-
-                    if needs_render || glyph_cluster.is_ligature() {
-                        let ImageList(ref mut images) = glyph.images;
-                        let is_square = advance_width == advance_height;
-                        let positions = if is_code || is_square { 1 } else { positions };
-                        for index in 0..positions {
-                            let x_offset = f32::from(index) / f32::from(positions);
-                            let image = Render::new(&[Source::Outline])
-                                .offset(Vector::new(x_offset, 0.0))
-                                .render(&mut scaler, glyph.id)
-                                .expect("expected glyph outline");
-
-                            let image = Image {
-                                left: image.placement.left,
-                                top: image.placement.top,
-                                width: image.placement.width,
-                                data: color::quantize(
-                                    &image.data,
-                                    image.placement.width,
-                                    bit_depth,
-                                ),
-                            };
-
-                            images.push(image);
-                        }
-                    }
-
-                    glyphs.push(glyph);
-                }
-
-                CharmapEntry {
-                    key: entry_key.clone(),
-                    advance_chars: entry_key.chars().count(),
-                    advance_width_to: BTreeMap::new(),
-                    advance_width: glyphs.iter().map(|glyph| glyph.advance_width).sum(),
-                    glyphs: GlyphList(glyphs),
-                }
+    let entries = RwLock::new(entries);
+    thread::scope(|scope| {
+        let entries = Entries(&entries);
+        shapers
+            .into_iter()
+            .zip(renders)
+            .zip(strings)
+            .for_each(|((shaper, render), strings)| {
+                scope.spawn(move || {
+                    shape_and_render_strings(entries, shaper, render, is_fallback, is_code, strings)
+                });
             });
-
-            if is_fallback {
-                return;
-            }
-
-            let mut advance_width: f32 = entry_glyphs.map(|glyph| glyph.advance).sum();
-            if is_code {
-                advance_width = advance_width.floor();
-            }
-
-            let to_entry_key = entry_key.clone();
-            if let Some((entry_key, advance_width)) = previous.replace((entry_key, advance_width)) {
-                update_advance_widths(&mut entries, entry_key, to_entry_key, advance_width);
-            }
-        } else {
-            previous = None;
-        }
     });
 
     entries
+        .into_inner()
+        .expect("expected no-poison lock on entries")
 }
 
 fn try_to_entry_key(string: &str, start: usize, end: usize) -> Result<String, ()> {
@@ -200,13 +147,13 @@ fn try_to_entry_key(string: &str, start: usize, end: usize) -> Result<String, ()
 
     debug_assert!(
         !bytes.is_empty(),
-        "indexing into `{string:?}`, out of bounds at `{end}`"
+        "indexing into `{string:?}`, out of bounds at `{end:?}`"
     );
     let entry_key = match String::from_utf8(bytes) {
         Ok(substring) if substring.is_empty() => return Err(()),
         Ok(substring) => substring,
         Err(e) => {
-            let message = format!("expected character boundary at bytes `{start}` and `{end}`");
+            let message = format!("expected character boundary at bytes `{start:?}` and `{end:?}`");
             debug_assert_eq!(None, Some(e), "indexing into `{string:?}`, {message}");
             return Err(());
         }
@@ -215,19 +162,182 @@ fn try_to_entry_key(string: &str, start: usize, end: usize) -> Result<String, ()
     Ok(entry_key)
 }
 
-fn update_advance_widths(
-    entries: &mut BTreeMap<String, CharmapEntry>,
-    entry_key: String,
-    to_entry_key: String,
-    advance_width: f32,
+fn shape_and_render_strings(
+    entries: Entries,
+    mut shaper: Shaper,
+    mut render: impl FnMut((u16, f32, f32)) -> Glyph,
+    is_fallback: bool,
+    is_code: bool,
+    strings: Vec<&String>,
 ) {
-    let entry = entries.get_mut(&entry_key).expect("expected entry");
-    if entry.advance_width != advance_width {
-        if let Some(previous) = entry.advance_width_to.insert(to_entry_key, advance_width) {
-            debug_assert_eq!(
-                previous, advance_width,
-                "expected equal previous advance width for entry key `{entry_key:?}`"
-            );
+    for string in strings.iter() {
+        shaper.add_str(string);
+        shaper.add_str("\n");
+    }
+
+    let mut strings = strings.into_iter();
+    let mut string = "";
+    let mut newline = false;
+    let mut previous = None;
+    shaper.shape_with(|glyph_cluster| {
+        let SourceRange { start, end } = glyph_cluster.source;
+        if start == 0 {
+            newline = !newline;
+            if newline {
+                string = strings.next().expect("expected string iterator to yield");
+            } else {
+                return;
+            }
         }
+
+        let Ok(entry_key) = try_to_entry_key(string, start as usize, end as usize) else {
+            return;
+        };
+        let (glyphs, mut advance_width) = glyph_cluster
+            .glyphs
+            .iter()
+            .filter(|glyph| glyph.id > 0 || entry_key == "\u{FFFD}")
+            .fold((Vec::new(), 0.0), |(mut glyphs, advance_width), glyph| {
+                let glyph_offsets = (glyph.id, glyph.x, glyph.y);
+                let advance_width = advance_width + glyph.advance;
+                glyphs.push(glyph_offsets);
+
+                (glyphs, advance_width)
+            });
+
+        if is_code {
+            advance_width = advance_width.floor();
+        }
+
+        if !glyphs.is_empty() || glyph_cluster.is_empty() {
+            if !entries.contains_key(&entry_key) {
+                let glyphs = glyphs.into_iter().map(&mut render);
+                entries.insert_glyphs(entry_key.clone(), glyphs.collect());
+            }
+
+            if is_fallback {
+                return;
+            }
+
+            let to_entry_key = entry_key.clone();
+            if let Some((entry_key, advance_width)) = previous.replace((entry_key, advance_width)) {
+                entries.insert_advance_width(entry_key, to_entry_key, advance_width);
+            }
+        } else {
+            previous = None;
+        }
+    });
+}
+
+fn scale_glyph(
+    scalers: &mut [Scaler],
+    is_code: bool,
+    positions: u8,
+    bit_depth: u8,
+    glyph_metrics: &GlyphMetrics,
+    glyph_offsets: (u16, f32, f32),
+) -> Glyph {
+    debug_assert_eq!(scalers.len(), positions as usize);
+    let (id, mut x_offset, mut y_offset) = glyph_offsets;
+    let mut advance_width = glyph_metrics.advance_width(id);
+    let mut advance_height = glyph_metrics.advance_height(id);
+    if is_code {
+        advance_width = advance_width.floor();
+        advance_height = advance_height.floor();
+        x_offset = x_offset.ceil();
+    }
+
+    if [812, 813, 814, 815, 817, 818, 819, 820, 821, 823, 825].contains(&id) {
+        x_offset = 0.0;
+        y_offset = 0.0;
+    }
+
+    let is_square = advance_width == advance_height;
+    let positions = if is_code || is_square { 1 } else { positions };
+
+    let images = Mutex::new(BTreeMap::new());
+    thread::scope(|scope| {
+        let images = &images;
+        (0..positions).zip(scalers).for_each(|(index, scaler)| {
+            scope.spawn(move || {
+                let x_offset = f32::from(index) / f32::from(positions);
+                let image = Render::new(&[Source::Outline])
+                    .offset(Vector::new(x_offset, 0.0))
+                    .render(scaler, id)
+                    .expect("expected glyph outline");
+
+                let image = Image {
+                    left: image.placement.left,
+                    top: image.placement.top,
+                    width: image.placement.width,
+                    data: color::quantize(&image.data, image.placement.width, bit_depth),
+                };
+
+                let mut images = images.lock().expect("expected no-poison lock on images");
+                let image = images.insert(index, image);
+                debug_assert!(image.is_none(), "expected not to remove an existing image");
+            });
+        });
+    });
+
+    let images = images
+        .into_inner()
+        .expect("expected no-poison lock on images");
+
+    let images: Vec<_> = images.into_values().collect();
+    debug_assert_eq!(images.len(), positions as usize);
+
+    Glyph {
+        x_offset,
+        y_offset,
+        positions,
+        bit_depth,
+        id,
+        advance_width,
+        images: ImageList(images),
+    }
+}
+
+impl Entries<'_> {
+    pub fn contains_key(self, entry_key: &String) -> bool {
+        let Entries(entries) = self;
+        let entries = entries.read().expect("expected no-poison lock on entries");
+
+        entries.contains_key(entry_key)
+    }
+
+    pub fn insert_glyphs(self, entry_key: String, glyphs: Vec<Glyph>) {
+        let Entries(entries) = self;
+        let mut entries = entries.write().expect("expected no-poison lock on entries");
+        let entry = entries.entry(entry_key);
+        entry.or_insert_with_key(|key| CharmapEntry {
+            key: key.clone(),
+            advance_chars: key.chars().count(),
+            advance_width_to: BTreeMap::new(),
+            advance_width: glyphs.iter().map(|glyph| glyph.advance_width).sum(),
+            glyphs: GlyphList(glyphs),
+        });
+    }
+
+    pub fn insert_advance_width(self, entry_key: String, to_entry_key: String, advance_width: f32) {
+        let Entries(entries) = self;
+        let mut entries = entries.write().expect("expected no-poison lock on entries");
+        let entry = entries.entry(entry_key);
+        let entry = entry.and_modify(|entry| {
+            if entry.advance_width != advance_width {
+                if let Some(previous) = entry.advance_width_to.insert(to_entry_key, advance_width) {
+                    debug_assert_eq!(
+                        previous,
+                        advance_width,
+                        "expected no change in value in case of update to entry with key `{key:?}`",
+                        key = entry.key,
+                    );
+                }
+            }
+        });
+        debug_assert!(
+            matches!(entry, Entry::Occupied(_)),
+            "expected to modify an existing entry"
+        );
     }
 }
