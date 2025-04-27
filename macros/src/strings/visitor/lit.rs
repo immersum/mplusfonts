@@ -1,3 +1,4 @@
+use proc_macro2::{TokenStream, TokenTree};
 use syn::visit_mut::*;
 
 use crate::strings::AttrExt;
@@ -54,6 +55,16 @@ macro_rules! impl_visit_other_mut {
 impl VisitMut for LitStrVisitor {
     fn visit_lit_str_mut(&mut self, node: &mut syn::LitStr) {
         self.strings.push(node.value());
+    }
+
+    fn visit_token_stream_mut(&mut self, tokens: &mut TokenStream) {
+        for tt in tokens.clone() {
+            if let TokenTree::Literal(token) = tt {
+                self.visit_lit_mut(&mut syn::Lit::new(token));
+            } else if let TokenTree::Group(token) = tt {
+                self.visit_token_stream_mut(&mut token.stream());
+            }
+        }
     }
 
     fn visit_attribute_mut(&mut self, node: &mut syn::Attribute) {

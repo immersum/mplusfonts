@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- The `strings` attribute macro to visit token streams when gathering string literals. For example,
+  parameters to any macro such as [`format!`] and [`concat!`] are token streams.
+
+[`format!`]: https://doc.rust-lang.org/std/macro.format.html
+[`concat!`]: https://doc.rust-lang.org/core/macro.concat.html
+
 ## [0.1.4] - 2025-04-17
 
 ### Changed
