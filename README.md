@@ -82,10 +82,6 @@ For more examples, see the [examples] folder.
 
 ## Limitations
 
-* ~The `strings` attribute ignores `format!`, `concat!`, or any other macro invocation as a source
-  of string literals. Since this crate is intended for `no_std` use, this should be less of an
-  issue, but it still requires a workaround for `concat!`.~
-  <sup>_* Starting with the next release, no workaround will be needed._</sup>
 * [`BitmapFontStyle`] does not have underline and strikethrough settings; these are not supported.
 * Rendering [combining characters](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks) with
   characters for which no single code point exists, is a hit-or-miss.
