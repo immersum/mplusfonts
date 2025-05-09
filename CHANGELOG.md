@@ -1,11 +1,12 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.5] - 2025-05-09
 
 ### Fixed
 
 - The font metrics to match their definitions in the TrueType fonts. The `ascender` is not used but
   is a public field.
+- Whitespace character rendering changed in `swash 0.2.4`; zero-width glyph images are now handled.
 
 ### Changed
 
@@ -62,3 +63,4 @@
 [0.1.2]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.2
 [0.1.3]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.3
 [0.1.4]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.4
+[0.1.5]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.5

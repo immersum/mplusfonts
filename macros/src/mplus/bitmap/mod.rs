@@ -266,6 +266,9 @@ fn scale_glyph(
                     .render(scaler, id)
                     .expect("expected glyph outline");
 
+                if image.placement.width == (x_offset % 1.0 > 0.0) as u32 {
+                    return;
+                }
                 let image = Image {
                     left: image.placement.left,
                     top: image.placement.top,
@@ -285,7 +288,9 @@ fn scale_glyph(
         .expect("expected no-poison lock on images");
 
     let images: Vec<_> = images.into_values().collect();
-    debug_assert_eq!(images.len(), positions as usize);
+    if !images.is_empty() {
+        debug_assert_eq!(images.len(), positions as usize);
+    }
 
     Glyph {
         x_offset,
