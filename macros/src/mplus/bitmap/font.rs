@@ -81,7 +81,7 @@ fn charmap_tokens(charmap: &Charmap, notdef: &CharmapEntry, params: &impl ToToke
 
 fn metrics_tokens(size: f32, is_code: bool) -> TokenStream {
     let top = size * if is_code { 1.235 } else { 1.16 };
-    let ascender = size * if is_code { 1.0 } else { 0.86 };
+    let ascender = size * if is_code { 1.0 } else { 0.88 };
     let cap_height = size * 0.73;
     let x_height = size * 0.52;
     let baseline = 0f32;

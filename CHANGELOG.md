@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- The font metrics to match their definitions in the TrueType fonts. The `ascender` is not used but
+  is a public field.
+
 ### Changed
 
 - The `strings` attribute macro to visit token streams when gathering string literals. For example,
