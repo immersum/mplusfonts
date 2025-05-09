@@ -1,9 +1,9 @@
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::{Pair, Punctuated};
-use syn::{parse, Token};
+use syn::{Token, parse};
 
-use super::font::{Font, FontSize, FontWeight};
 use super::CharSource;
+use super::font::{Font, FontSize, FontWeight};
 
 pub struct Arguments {
     pub font: Pair<Font, Token![,]>,

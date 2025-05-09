@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::punctuated::Punctuated;
 use syn::visit_mut::*;
-use syn::{token, Token};
+use syn::{Token, token};
 
 use crate::strings::AttrExt;
 
