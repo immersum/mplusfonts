@@ -11,6 +11,7 @@
 
 - The `strings` attribute macro to visit token streams when gathering string literals. For example,
   parameters to any macro such as [`format!`] and [`concat!`] are token streams.
+- Upgrade dependencies: `swash 0.2.4`.
 
 [`format!`]: https://doc.rust-lang.org/std/macro.format.html
 [`concat!`]: https://doc.rust-lang.org/core/macro.concat.html
