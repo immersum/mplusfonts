@@ -5,6 +5,7 @@
 //! enable downsampling, color conversion from any [`GrayColor`] to any other color type that a
 //! [`DrawTarget`](../../embedded_graphics_core/draw_target/trait.DrawTarget.html) expects,
 //! applying color settings, and mixing colors in [`Screen`] blend mode.
+
 use core::array;
 
 use embedded_graphics::pixelcolor::*;

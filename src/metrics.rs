@@ -13,8 +13,8 @@ pub struct BitmapFontMetrics {
     /// The top of capital letters, defined as _730/1000 em_-size for both **M<sup>+</sup> 1/2**
     /// and **M<sup>+</sup> Code**.
     pub cap_height: f32,
-    /// The top of the small letter _x_, defined as _520/1000 em_-size for both **M<sup>+</sup> 1/2**
-    /// and **M<sup>+</sup> Code**.
+    /// The top of the small letter _x_, defined as _520/1000 em_-size for both **M<sup>+</sup>
+    /// 1/2** and **M<sup>+</sup> Code**.
     pub x_height: f32,
     /// The baseline.
     pub baseline: f32,
