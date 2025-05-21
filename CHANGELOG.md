@@ -2,6 +2,11 @@
 
 ## [0.2.0] - 2025-05-21
 
+### Added
+
+- Underline and strikethrough decorations for text. The interface of the style builder provides the
+  necessary methods for enabling these graphics with various color options.
+
 ### Fixed
 
 - All one-pixel-wide images at non-zero offsets being discarded, not only of whitespace characters.

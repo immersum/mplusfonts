@@ -2,6 +2,7 @@ use embedded_graphics::iterator::raw::RawDataSlice;
 use embedded_graphics::pixelcolor::PixelColor;
 use embedded_graphics::pixelcolor::raw::BigEndian;
 
+use crate::DecorationDimensions;
 use crate::charmap::{Charmap, CharmapEntry};
 use crate::metrics::BitmapFontMetrics;
 
@@ -17,6 +18,10 @@ where
     pub charmap: Charmap<'a, C, N>,
     /// The metrics that are scaled to go with the bitmap font.
     pub metrics: BitmapFontMetrics,
+    /// The dimensions of the underline decoration.
+    pub underline: DecorationDimensions,
+    /// The dimensions of the strikethrough decoration.
+    pub strikethrough: DecorationDimensions,
 }
 
 impl<'a, C, const N: usize> BitmapFont<'a, C, N>
@@ -28,5 +33,7 @@ where
     pub const NULL: Self = Self {
         charmap: Charmap::Leaf(CharmapEntry::NULL),
         metrics: BitmapFontMetrics::NULL,
+        underline: DecorationDimensions::NULL,
+        strikethrough: DecorationDimensions::NULL,
     };
 }

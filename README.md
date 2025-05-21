@@ -50,15 +50,13 @@ Adds an *optimal* subset of [**M<sup>+</sup> FONTS**] to your next embedded Rust
 
 ```toml
 [dependencies]
-mplusfonts = "0.1"
+mplusfonts = "0.2"
 ```
 
 ```rust
 #[mplusfonts::strings]
 pub fn main() -> Result<(), Infallible> {
-    const KB_OK: &str = "KB OK";
-
-    let text = format!("{} {KB_OK}", 16 * 40);
+    let text = format!("{} KB_OK", 16 * 40);
 
     let mut display: SimulatorDisplay<Rgb565> = SimulatorDisplay::new(Size::new(320, 240));
 
@@ -82,7 +80,6 @@ For more examples, see the [examples] folder.
 
 ## Limitations
 
-* [`BitmapFontStyle`] does not have underline and strikethrough settings; these are not supported.
 * Rendering [combining characters](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks) with
   characters for which no single code point exists, is a hit-or-miss.
 * **Transparent backgrounds are not supported.** Alpha compositing is not available; this crate

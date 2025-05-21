@@ -20,8 +20,8 @@ use embedded_graphics::iterator::raw::RawDataSlice;
 use embedded_graphics::pixelcolor::raw::BigEndian;
 use embedded_graphics::pixelcolor::{BinaryColor, Gray2, Gray4, Gray8, PixelColor};
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle, StyledDrawable};
-use embedded_graphics::text::Baseline;
 use embedded_graphics::text::renderer::{CharacterStyle, TextMetrics, TextRenderer};
+use embedded_graphics::text::{Baseline, DecorationColor};
 
 use crate::adapter::DrawTargetExt;
 use crate::charmap::{Charmap, CharmapEntry};
@@ -48,6 +48,10 @@ where
     pub text_color: Option<T>,
     /// The background color.
     pub background_color: Option<T>,
+    /// The underline color.
+    pub underline_color: DecorationColor<T>,
+    /// The strikethrough color.
+    pub strikethrough_color: DecorationColor<T>,
 }
 
 impl<'a, 'b, T, C, const N: usize> BitmapFontStyle<'a, 'b, T, C, N>
@@ -74,6 +78,26 @@ where
     /// to a value.
     fn background_color(&self) -> T {
         self.background_color.unwrap_or_default()
+    }
+
+    /// Returns the optional underline color, which, when set to a value, can either have the same
+    /// color as the text or a custom color.
+    fn underline_color(&self) -> Option<T> {
+        match self.underline_color {
+            DecorationColor::None => None,
+            DecorationColor::TextColor => Some(self.text_color()),
+            DecorationColor::Custom(color) => Some(color),
+        }
+    }
+
+    /// Returns the optional strikethrough color, which, when set to a value, can either have the
+    /// same color as the text or a custom color.
+    fn strikethrough_color(&self) -> Option<T> {
+        match self.strikethrough_color {
+            DecorationColor::None => None,
+            DecorationColor::TextColor => Some(self.text_color()),
+            DecorationColor::Custom(color) => Some(color),
+        }
     }
 }
 
@@ -227,6 +251,34 @@ macro_rules! impl_text_renderer {
                     let next_position = Point::new(x as i32, position.y);
                     line_piece.draw_styled(&background_style, target)?;
 
+                    let right = i32::max(x as i32, right);
+                    let width = right.saturating_sub(position.x);
+                    let width = width.try_into().unwrap_or_default();
+
+                    if let Some(stroke_color) = self.underline_color() {
+                        let top = y.saturating_sub(self.font.underline.y_offset());
+                        let height = self.font.underline.stroke_width();
+                        let underline_style = PrimitiveStyle::with_fill(stroke_color);
+                        let underline = Rectangle {
+                            top_left: Point::new(position.x, top),
+                            size: Size::new(width, height),
+                        };
+
+                        underline.draw_styled(&underline_style, target)?;
+                    }
+
+                    if let Some(stroke_color) = self.strikethrough_color() {
+                        let top = y.saturating_sub(self.font.strikethrough.y_offset());
+                        let height = self.font.strikethrough.stroke_width();
+                        let strikethrough_style = PrimitiveStyle::with_fill(stroke_color);
+                        let strikethrough = Rectangle {
+                            top_left: Point::new(position.x, top),
+                            size: Size::new(width, height),
+                        };
+
+                        strikethrough.draw_styled(&strikethrough_style, target)?;
+                    }
+
                     Ok(next_position)
                 }
 
@@ -253,6 +305,30 @@ macro_rules! impl_text_renderer {
 
                     let next_position = Point::new(x as i32, position.y);
                     line_piece.draw_styled(&background_style, target)?;
+
+                    if let Some(stroke_color) = self.underline_color() {
+                        let top = y.saturating_sub(self.font.underline.y_offset());
+                        let height = self.font.underline.stroke_width();
+                        let underline_style = PrimitiveStyle::with_fill(stroke_color);
+                        let underline = Rectangle {
+                            top_left: Point::new(position.x, top),
+                            size: Size::new(width, height),
+                        };
+
+                        underline.draw_styled(&underline_style, target)?;
+                    }
+
+                    if let Some(stroke_color) = self.strikethrough_color() {
+                        let top = y.saturating_sub(self.font.strikethrough.y_offset());
+                        let height = self.font.strikethrough.stroke_width();
+                        let strikethrough_style = PrimitiveStyle::with_fill(stroke_color);
+                        let strikethrough = Rectangle {
+                            top_left: Point::new(position.x, top),
+                            size: Size::new(width, height),
+                        };
+
+                        strikethrough.draw_styled(&strikethrough_style, target)?;
+                    }
 
                     Ok(next_position)
                 }

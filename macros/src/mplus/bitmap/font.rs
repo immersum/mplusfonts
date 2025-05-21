@@ -33,10 +33,14 @@ impl ToTokens for BitmapFont {
         };
         let charmap = charmap_tokens(charmap, notdef, &params);
         let metrics = metrics_tokens(*size, *is_code);
+        let underline = underline_tokens(*size);
+        let strikethrough = strikethrough_tokens(*size);
         let font = quote! {
             ::mplusfonts::BitmapFont::<#params> {
                 charmap: #charmap,
                 metrics: #metrics,
+                underline: #underline,
+                strikethrough: #strikethrough,
             }
         };
 
@@ -100,4 +104,30 @@ fn metrics_tokens(size: f32, is_code: bool) -> TokenStream {
     };
 
     metrics
+}
+
+fn underline_tokens(size: f32) -> TokenStream {
+    let offset = size * -0.1;
+    let height = size * 0.05;
+    let dimensions = quote! {
+        ::mplusfonts::DecorationDimensions {
+            offset: #offset,
+            height: #height,
+        }
+    };
+
+    dimensions
+}
+
+fn strikethrough_tokens(size: f32) -> TokenStream {
+    let offset = size * 0.312;
+    let height = size * 0.05;
+    let dimensions = quote! {
+        ::mplusfonts::DecorationDimensions {
+            offset: #offset,
+            height: #height,
+        }
+    };
+
+    dimensions
 }

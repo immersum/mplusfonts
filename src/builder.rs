@@ -1,6 +1,7 @@
 use embedded_graphics::iterator::raw::RawDataSlice;
 use embedded_graphics::pixelcolor::raw::BigEndian;
 use embedded_graphics::pixelcolor::{BinaryColor, PixelColor};
+use embedded_graphics::text::DecorationColor;
 
 use crate::color::{Invert, Screen};
 use crate::font::BitmapFont;
@@ -36,6 +37,30 @@ where
         self
     }
 
+    /// Removes the underline decoration.
+    pub const fn reset_underline(mut self) -> Self {
+        self.style.underline_color = DecorationColor::None;
+        self
+    }
+
+    /// Removes the strikethrough decoration.
+    pub const fn reset_strikethrough(mut self) -> Self {
+        self.style.strikethrough_color = DecorationColor::None;
+        self
+    }
+
+    /// Enables underline using the text color.
+    pub const fn underline(mut self) -> Self {
+        self.style.underline_color = DecorationColor::TextColor;
+        self
+    }
+
+    /// Enables strikethrough using the text color.
+    pub const fn strikethrough(mut self) -> Self {
+        self.style.strikethrough_color = DecorationColor::TextColor;
+        self
+    }
+
     /// Sets the text color to the specified value.
     pub const fn text_color(mut self, text_color: T) -> Self {
         self.style.text_color = Some(text_color);
@@ -45,6 +70,18 @@ where
     /// Sets the background color to the specified value.
     pub const fn background_color(mut self, background_color: T) -> Self {
         self.style.background_color = Some(background_color);
+        self
+    }
+
+    /// Enables underline using a custom color.
+    pub const fn underline_with_color(mut self, underline_color: T) -> Self {
+        self.style.underline_color = DecorationColor::Custom(underline_color);
+        self
+    }
+
+    /// Enables strikethrough using a custom color.
+    pub const fn strikethrough_with_color(mut self, strikethrough_color: T) -> Self {
+        self.style.strikethrough_color = DecorationColor::Custom(strikethrough_color);
         self
     }
 
@@ -62,6 +99,8 @@ where
                 font,
                 text_color: self.style.text_color,
                 background_color: self.style.background_color,
+                underline_color: self.style.underline_color,
+                strikethrough_color: self.style.strikethrough_color,
             },
         }
     }
@@ -83,6 +122,8 @@ where
                 font: &BitmapFont::NULL,
                 text_color: None,
                 background_color: None,
+                underline_color: DecorationColor::None,
+                strikethrough_color: DecorationColor::None,
             },
         }
     }
@@ -100,6 +141,8 @@ where
                 font: &BitmapFont::NULL,
                 text_color: None,
                 background_color: None,
+                underline_color: DecorationColor::None,
+                strikethrough_color: DecorationColor::None,
             },
         }
     }
