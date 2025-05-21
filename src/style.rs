@@ -175,6 +175,8 @@ macro_rules! impl_text_renderer {
                             let dx = dx_quadrant.right_of(&clip_area);
                             let qx = qx_quadrant.right_of(&clip_area);
                             dx.above(&previous_image_box).draw_styled(&background_style, target)?;
+                            qx.above(&previous_image_box).draw_styled(&background_style, target)?;
+                            dx.below(&previous_image_box).draw_styled(&background_style, target)?;
                             qx.below(&previous_image_box).draw_styled(&background_style, target)?;
 
                             image.mixed(&previous_image, &colormap).draw(target)?;

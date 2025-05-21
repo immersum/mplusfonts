@@ -5,6 +5,8 @@
 ### Fixed
 
 - All one-pixel-wide images at non-zero offsets being discarded, not only of whitespace characters.
+- Background not filled in where two glyph images would overlap along the _x_-axis but are actually
+  spaced out along the _y_-axis. The empty pixels are no longer there.
 
 ## [0.1.5] - 2025-05-09
 
