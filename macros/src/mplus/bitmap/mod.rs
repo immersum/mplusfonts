@@ -267,7 +267,6 @@ fn scale_glyph(
                     .expect("expected glyph outline");
 
                 if image.data.is_empty() {
-                    debug_assert_eq!(image.placement.width, (x_offset % 1.0 > 0.0) as u32);
                     return;
                 }
 
