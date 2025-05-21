@@ -266,9 +266,11 @@ fn scale_glyph(
                     .render(scaler, id)
                     .expect("expected glyph outline");
 
-                if image.placement.width == (x_offset % 1.0 > 0.0) as u32 {
+                if image.data.is_empty() {
+                    debug_assert_eq!(image.placement.width, (x_offset % 1.0 > 0.0) as u32);
                     return;
                 }
+
                 let image = Image {
                     left: image.placement.left,
                     top: image.placement.top,

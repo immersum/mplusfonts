@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0] - 2025-05-21
+
+### Fixed
+
+- All one-pixel-wide images at non-zero offsets being discarded, not only of whitespace characters.
+
 ## [0.1.5] - 2025-05-09
 
 ### Fixed
@@ -64,3 +70,4 @@
 [0.1.3]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.3
 [0.1.4]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.4
 [0.1.5]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.5
+[0.2.0]: https://github.com/immersum/mplusfonts/releases/tag/v0.2.0
