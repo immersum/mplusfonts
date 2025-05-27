@@ -182,7 +182,13 @@ impl VisitMut for MacroVisitor {
             [node.expr.as_mut()],
 
         visit_expr_if_mut, node, &mut syn::ExprIf,
-            [node.cond.as_mut()],
+            [node.cond.as_mut()]
+                .into_iter()
+                .chain(
+                    node.else_branch
+                        .as_mut()
+                        .map(|(_, expr)| expr.as_mut()),
+                ),
 
         visit_expr_index_mut, node, &mut syn::ExprIndex,
             [node.expr.as_mut()],
@@ -272,8 +278,16 @@ impl VisitMut for MacroVisitor {
             node.init
                 .as_mut_slice()
                 .iter_mut()
-                .map(|local_init| &mut local_init.expr)
-                .map(|expr| expr.as_mut()),
+                .flat_map(|local_init| {
+                    [local_init.expr.as_mut()]
+                        .into_iter()
+                        .chain(
+                            local_init
+                                .diverge
+                                .as_mut()
+                                .map(|(_, expr)| expr.as_mut()),
+                        )
+                }),
 
         visit_trait_item_const_mut, node, &mut syn::TraitItemConst,
             node.default
