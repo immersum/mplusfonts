@@ -191,13 +191,25 @@ impl VisitMut for MacroVisitor {
                 ),
 
         visit_expr_index_mut, node, &mut syn::ExprIndex,
-            [node.expr.as_mut()],
+            [node.expr.as_mut(), node.index.as_mut()],
 
         visit_expr_let_mut, node, &mut syn::ExprLet,
             [node.expr.as_mut()],
 
         visit_expr_match_mut, node, &mut syn::ExprMatch,
-            [node.expr.as_mut()],
+            [node.expr.as_mut()]
+                .into_iter()
+                .chain(
+                    node.arms
+                        .iter_mut()
+                        .flat_map(|arm| {
+                            arm.guard
+                                .as_mut_slice()
+                                .iter_mut()
+                                .map(|(_, expr)| expr.as_mut())
+                                .chain([arm.body.as_mut()])
+                        }),
+                ),
 
         visit_expr_method_call_mut, node, &mut syn::ExprMethodCall,
             [node.receiver.as_mut()]
