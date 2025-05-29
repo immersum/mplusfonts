@@ -221,8 +221,9 @@ impl VisitMut for MacroVisitor {
 
         visit_expr_range_mut, node, &mut syn::ExprRange,
             node.start
-                .as_deref_mut()
-                .into_iter()
+                .as_mut_slice()
+                .iter_mut()
+                .map(|expr| expr.as_mut())
                 .chain(node.end.as_deref_mut()),
 
         visit_expr_raw_addr_mut, node, &mut syn::ExprRawAddr,
