@@ -7,7 +7,7 @@ mod source;
 
 use std::collections::BTreeMap;
 
-use bitmap::{BitmapFont, render_glyphs};
+use bitmap::BitmapFont;
 use charmap::Charmap;
 use expr::ExprPathExt;
 use font::Font;
@@ -22,8 +22,8 @@ pub fn mplus_impl(mut args: Arguments) -> TokenStream {
     args.sources.push(notdef);
 
     let mut entries = BTreeMap::new();
-    entries.extend(render_glyphs(&args, true));
-    entries.extend(render_glyphs(&args, false));
+    entries.extend(bitmap::from_outline::render(&args, true));
+    entries.extend(bitmap::from_outline::render(&args, false));
 
     let notdef = entries.remove("\u{FFFD}").expect("expected `\u{FFFD}`");
     let charmap = Charmap::from_iter(entries);
