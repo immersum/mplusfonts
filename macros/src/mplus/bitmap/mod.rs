@@ -25,11 +25,24 @@ pub use image::{Image, ImageList};
 #[derive(Clone, Copy)]
 struct Entries<'a>(&'a RwLock<BTreeMap<String, CharmapEntry>>);
 
+#[derive(Clone, Copy)]
+struct Halfwidth(f32);
+
+#[derive(Clone, Copy)]
+enum PixelAlignmentStrategy {
+    Floor(Halfwidth),
+    Ceil,
+    Zero,
+}
+
 pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, CharmapEntry> {
     let entries = BTreeMap::new();
     let font = args.font.value();
     let font_ref = font.as_ref(is_fallback);
     let is_code = matches!(font, Font::MPLUSCode { .. });
+    if is_fallback && !is_code {
+        return entries;
+    }
 
     let mut coords = Vec::new();
     let units = args.weight.into_value();
@@ -40,22 +53,31 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
 
     coords.push(weight_axis.normalize(units.into()));
 
-    if is_fallback {
-        if let Font::MPLUS1 { .. } | Font::MPLUS2 { .. } = font {
-            return entries;
-        }
-    } else if let Font::MPLUSCode { variable, .. } = font {
-        let (_, _, FontWidth(units)) = *variable;
-        let width_axis = font_ref
-            .variations()
-            .find_by_tag(swash::tag_from_str_lossy("wdth"))
-            .expect("expected font width axis");
+    let em_per_halfwidth;
+    if let Font::MPLUSCode { variable, .. } = font {
+        let (.., FontWidth(units)) = *variable;
+        if !is_fallback {
+            let width_axis = font_ref
+                .variations()
+                .find_by_tag(swash::tag_from_str_lossy("wdth"))
+                .expect("expected font width axis");
 
-        coords.push(width_axis.normalize(units.into()));
-    }
+            coords.push(width_axis.normalize(units.into()));
+        }
+
+        em_per_halfwidth = f32::from(units).mul_add(0.4 / 100.0, 0.1);
+    } else {
+        em_per_halfwidth = 0.5
+    };
 
     let pixels_per_em = args.size.into_value();
     let glyph_metrics = font_ref.glyph_metrics(&coords).scale(pixels_per_em);
+
+    let pixel_alignment_strategy = match pixels_per_em {
+        ..1.25 => PixelAlignmentStrategy::Zero,
+        ..2.0 => PixelAlignmentStrategy::Ceil,
+        _ => PixelAlignmentStrategy::Floor(Halfwidth(pixels_per_em * em_per_halfwidth)),
+    };
 
     let mut contexts: Vec<_> = iter::repeat_with(ShapeContext::new)
         .take(thread::available_parallelism().map(Into::into).unwrap_or(1))
@@ -93,6 +115,7 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
             scale_glyph(
                 scalers,
                 is_code,
+                pixel_alignment_strategy,
                 positions,
                 bit_depth,
                 &glyph_metrics,
@@ -132,7 +155,15 @@ pub fn render_glyphs(args: &Arguments, is_fallback: bool) -> BTreeMap<String, Ch
             .zip(strings)
             .for_each(|((shaper, render), strings)| {
                 scope.spawn(move || {
-                    shape_and_render_strings(entries, shaper, render, is_fallback, is_code, strings)
+                    shape_and_render_strings(
+                        entries,
+                        shaper,
+                        render,
+                        is_fallback,
+                        is_code,
+                        pixel_alignment_strategy,
+                        strings,
+                    )
                 });
             });
     });
@@ -168,6 +199,7 @@ fn shape_and_render_strings(
     mut render: impl FnMut((u16, f32, f32)) -> Glyph,
     is_fallback: bool,
     is_code: bool,
+    pixel_alignment_strategy: PixelAlignmentStrategy,
     strings: Vec<&String>,
 ) {
     for string in strings.iter() {
@@ -205,9 +237,27 @@ fn shape_and_render_strings(
                 (glyphs, advance_width)
             });
 
+        let advance_width_adjustment;
         if is_code {
-            advance_width = advance_width.floor();
+            match pixel_alignment_strategy {
+                PixelAlignmentStrategy::Floor(halfwidth) => {
+                    advance_width = advance_width.floor();
+                    advance_width_adjustment = halfwidth.adjustment(advance_width);
+                }
+                PixelAlignmentStrategy::Ceil => {
+                    advance_width = (advance_width / 1.2).ceil();
+                    advance_width_adjustment = 0.0;
+                }
+                PixelAlignmentStrategy::Zero => {
+                    advance_width = 0.0;
+                    advance_width_adjustment = 0.0;
+                }
+            }
+        } else {
+            advance_width_adjustment = 0.0;
         }
+
+        advance_width += advance_width_adjustment;
 
         if !glyphs.is_empty() || glyph_cluster.is_empty() {
             if !entries.contains_key(&entry_key) {
@@ -232,6 +282,7 @@ fn shape_and_render_strings(
 fn scale_glyph(
     scalers: &mut [Scaler],
     is_code: bool,
+    pixel_alignment_strategy: PixelAlignmentStrategy,
     positions: u8,
     bit_depth: u8,
     glyph_metrics: &GlyphMetrics,
@@ -241,10 +292,30 @@ fn scale_glyph(
     let (id, mut x_offset, mut y_offset) = glyph_offsets;
     let mut advance_width = glyph_metrics.advance_width(id);
     let mut advance_height = glyph_metrics.advance_height(id);
+    let advance_width_adjustment;
     if is_code {
-        advance_width = advance_width.floor();
-        advance_height = advance_height.floor();
-        x_offset = x_offset.ceil();
+        match pixel_alignment_strategy {
+            PixelAlignmentStrategy::Floor(halfwidth) => {
+                advance_width = advance_width.floor();
+                advance_width_adjustment = halfwidth.adjustment(advance_width);
+                advance_height = advance_height.floor();
+                x_offset = x_offset.ceil();
+            }
+            PixelAlignmentStrategy::Ceil => {
+                advance_width = (advance_width / 1.2).ceil();
+                advance_width_adjustment = 0.0;
+                advance_height = advance_height.ceil();
+                x_offset = x_offset.ceil();
+            }
+            PixelAlignmentStrategy::Zero => {
+                advance_width = 0.0;
+                advance_width_adjustment = 0.0;
+                advance_height = 0.0;
+                x_offset = 0.0;
+            }
+        }
+    } else {
+        advance_width_adjustment = 0.0;
     }
 
     if [812, 813, 814, 815, 817, 818, 819, 820, 821, 823, 825].contains(&id) {
@@ -252,37 +323,41 @@ fn scale_glyph(
         y_offset = 0.0;
     }
 
-    let is_square = advance_width == advance_height;
+    let is_square = advance_width == advance_height || id == 0;
     let positions = if is_code || is_square { 1 } else { positions };
+    let x_padding = (advance_width_adjustment / 2.0) as u32;
+    advance_width += advance_width_adjustment;
 
     let images = Mutex::new(BTreeMap::new());
-    thread::scope(|scope| {
-        let images = &images;
-        (0..positions).zip(scalers).for_each(|(index, scaler)| {
-            scope.spawn(move || {
-                let x_offset = f32::from(index) / f32::from(positions);
-                let image = Render::new(&[Source::Outline])
-                    .offset(Vector::new(x_offset, 0.0))
-                    .render(scaler, id)
-                    .expect("expected glyph outline");
+    if advance_width > 0.0 {
+        thread::scope(|scope| {
+            let images = &images;
+            (0..positions).zip(scalers).for_each(|(index, scaler)| {
+                scope.spawn(move || {
+                    let x_offset = f32::from(index) / f32::from(positions);
+                    let image = Render::new(&[Source::Outline])
+                        .offset(Vector::new(x_offset, 0.0))
+                        .render(scaler, id)
+                        .expect("expected glyph outline");
 
-                if image.data.is_empty() {
-                    return;
-                }
+                    if image.data.is_empty() {
+                        return;
+                    }
 
-                let image = Image {
-                    left: image.placement.left,
-                    top: image.placement.top,
-                    width: image.placement.width,
-                    data: color::quantize(&image.data, image.placement.width, bit_depth),
-                };
+                    let image = Image {
+                        left: image.placement.left.saturating_add_unsigned(x_padding),
+                        top: image.placement.top,
+                        width: image.placement.width,
+                        data: color::quantize(&image.data, image.placement.width, bit_depth),
+                    };
 
-                let mut images = images.lock().expect("expected no-poison lock on images");
-                let image = images.insert(index, image);
-                debug_assert!(image.is_none(), "expected not to remove an existing image");
+                    let mut images = images.lock().expect("expected no-poison lock on images");
+                    let image = images.insert(index, image);
+                    debug_assert!(image.is_none(), "expected not to remove an existing image");
+                });
             });
         });
-    });
+    }
 
     let images = images
         .into_inner()
@@ -345,5 +420,21 @@ impl Entries<'_> {
             matches!(entry, Entry::Occupied(_)),
             "expected to modify an existing entry"
         );
+    }
+}
+
+impl Halfwidth {
+    fn adjustment(&self, advance_width: f32) -> f32 {
+        let Self(halfwidth) = *self;
+        debug_assert_ne!(0.0, halfwidth);
+        debug_assert_eq!(advance_width.signum(), halfwidth.signum());
+
+        let mut new_advance_width = halfwidth.floor();
+        while advance_width > new_advance_width + halfwidth * 0.4 {
+            new_advance_width += halfwidth;
+        }
+
+        new_advance_width = new_advance_width.floor();
+        new_advance_width - advance_width
     }
 }

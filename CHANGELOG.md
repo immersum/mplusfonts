@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1] - 2025-08-06
+
+### Fixed
+
+- Japanese monospaced text out of alignment. All `code(width)` and `size` combinations now have the
+  positions of glyph images adjusted so that they would appear center-aligned in a grid with single
+  and double-width character cells.
+
 ## [0.2.0] - 2025-05-21
 
 ### Added
