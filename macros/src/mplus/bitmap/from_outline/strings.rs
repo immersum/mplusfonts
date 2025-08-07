@@ -1,9 +1,9 @@
 use swash::shape::Shaper;
 use swash::text::cluster::SourceRange;
 
-use crate::mplus::bitmap::Glyph;
+use crate::mplus::bitmap::{CharDictionary, CharDictionaryKey, Glyph};
 
-use super::{CharDictionary, PixelAlignmentStrategy};
+use super::PixelAlignmentStrategy;
 
 pub fn shape_and_render(
     entries: CharDictionary,
@@ -34,13 +34,14 @@ pub fn shape_and_render(
             }
         }
 
-        let Ok(entry_key) = try_to_entry_key(string, start as usize, end as usize) else {
+        let Ok(entry_key) = CharDictionaryKey::try_from(string, start as usize, end as usize)
+        else {
             return;
         };
         let (glyphs, mut advance_width) = glyph_cluster
             .glyphs
             .iter()
-            .filter(|glyph| glyph.id > 0 || entry_key == "\u{FFFD}")
+            .filter(|glyph| glyph.id > 0 || entry_key.as_ref() == "\u{FFFD}")
             .fold((Vec::new(), 0.0), |(mut glyphs, advance_width), glyph| {
                 let glyph_offsets = (glyph.id, glyph.x, glyph.y);
                 let advance_width = advance_width + glyph.advance;
@@ -89,24 +90,4 @@ pub fn shape_and_render(
             previous = None;
         }
     });
-}
-
-fn try_to_entry_key(string: &str, start: usize, end: usize) -> Result<String, ()> {
-    let bytes: Vec<_> = string.bytes().skip(start).take(end - start).collect();
-
-    debug_assert!(
-        !bytes.is_empty(),
-        "indexing into `{string:?}`, out of bounds at `{end:?}`"
-    );
-    let entry_key = match String::from_utf8(bytes) {
-        Ok(substring) if substring.is_empty() => return Err(()),
-        Ok(substring) => substring,
-        Err(e) => {
-            let message = format!("expected character boundary at bytes `{start:?}` and `{end:?}`");
-            debug_assert_eq!(None, Some(e), "indexing into `{string:?}`, {message}");
-            return Err(());
-        }
-    };
-
-    Ok(entry_key)
 }
