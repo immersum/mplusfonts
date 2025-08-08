@@ -12,7 +12,7 @@ pub enum CharSource {
 }
 
 impl CharSource {
-    pub fn strings(&self, is_code: bool) -> impl IntoIterator<Item = Cow<[String]>> {
+    pub fn strings(&self, is_code: bool) -> impl IntoIterator<Item = Cow<'_, [String]>> {
         match *self {
             CharSource::Strings(ref strings) => {
                 let array = [strings.into()];

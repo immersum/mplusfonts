@@ -28,7 +28,7 @@ pub enum Font {
 }
 
 impl Font {
-    pub fn as_ref(&self, is_fallback: bool) -> FontRef {
+    pub fn as_ref(&self, is_fallback: bool) -> FontRef<'_> {
         let (data, offset, key) = match *self {
             Self::MPLUS1(offset, key) => (MPLUS1.as_ref(), offset, key),
             Self::MPLUS2(offset, key) => (MPLUS2.as_ref(), offset, key),
