@@ -34,7 +34,6 @@ pub fn render(args: &Arguments, is_fallback: bool) -> BTreeMap<String, CharmapEn
 
     coords.push(weight_axis.normalize(units.into()));
 
-    let em_per_halfwidth;
     if let Font::MPLUSCode { variable, .. } = font {
         let (.., FontWidth(units)) = *variable;
         if !is_fallback {
@@ -45,16 +44,12 @@ pub fn render(args: &Arguments, is_fallback: bool) -> BTreeMap<String, CharmapEn
 
             coords.push(width_axis.normalize(units.into()));
         }
-
-        em_per_halfwidth = f32::from(units).mul_add(0.4 / 100.0, 0.1);
-    } else {
-        em_per_halfwidth = 0.5
-    };
+    }
 
     let pixels_per_em = args.size.into_value();
     let glyph_metrics = font_ref.glyph_metrics(&coords).scale(pixels_per_em);
 
-    let pixel_alignment_strategy = PixelAlignmentStrategy::new(pixels_per_em, em_per_halfwidth);
+    let pixel_alignment_strategy = PixelAlignmentStrategy::from_font(font, pixels_per_em);
 
     let mut contexts: Vec<_> = iter::repeat_with(ShapeContext::new)
         .take(thread::available_parallelism().map(Into::into).unwrap_or(1))

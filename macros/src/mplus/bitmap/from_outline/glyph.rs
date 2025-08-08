@@ -22,43 +22,30 @@ pub fn scale(
 ) -> Glyph {
     debug_assert_eq!(scalers.len(), positions as usize);
     let (id, mut x_offset, mut y_offset) = glyph_offsets;
-    let mut advance_width = glyph_metrics.advance_width(id);
-    let mut advance_height = glyph_metrics.advance_height(id);
-    let advance_width_adjustment;
-    if is_code {
-        match pixel_alignment_strategy {
-            PixelAlignmentStrategy::Floor(halfwidth) => {
-                advance_width = advance_width.floor();
-                advance_width_adjustment = halfwidth.adjustment(advance_width);
-                advance_height = advance_height.floor();
-                x_offset = x_offset.ceil();
-            }
-            PixelAlignmentStrategy::Ceil => {
-                advance_width = (advance_width / 1.2).ceil();
-                advance_width_adjustment = 0.0;
-                advance_height = advance_height.ceil();
-                x_offset = x_offset.ceil();
-            }
-            PixelAlignmentStrategy::Zero => {
-                advance_width = 0.0;
-                advance_width_adjustment = 0.0;
-                advance_height = 0.0;
-                x_offset = 0.0;
-            }
-        }
+    let advance_width = glyph_metrics.advance_width(id);
+    let advance_height = glyph_metrics.advance_height(id);
+    let is_square = advance_width == advance_height || id == 0;
+    let positions = if is_code || is_square { 1 } else { positions };
+    let x_padding;
+
+    let advance_width = if is_code {
+        let advance_width = pixel_alignment_strategy.with_advance_width(advance_width);
+        let advance_width_adjustment = advance_width.adjustment();
+        let advance_width = advance_width.into_inner();
+        x_offset = x_offset.ceil();
+        x_padding = (advance_width_adjustment / 2.0) as u32;
+
+        advance_width + advance_width_adjustment
     } else {
-        advance_width_adjustment = 0.0;
-    }
+        x_padding = 0;
+
+        advance_width
+    };
 
     if [812, 813, 814, 815, 817, 818, 819, 820, 821, 823, 825].contains(&id) {
         x_offset = 0.0;
         y_offset = 0.0;
     }
-
-    let is_square = advance_width == advance_height || id == 0;
-    let positions = if is_code || is_square { 1 } else { positions };
-    let x_padding = (advance_width_adjustment / 2.0) as u32;
-    advance_width += advance_width_adjustment;
 
     let images = Mutex::new(BTreeMap::new());
     if advance_width > 0.0 {

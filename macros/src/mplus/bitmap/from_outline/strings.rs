@@ -38,7 +38,7 @@ pub fn shape_and_render(
         else {
             return;
         };
-        let (glyphs, mut advance_width) = glyph_cluster
+        let (glyphs, advance_width) = glyph_cluster
             .glyphs
             .iter()
             .filter(|glyph| glyph.id > 0 || entry_key.as_ref() == "\u{FFFD}")
@@ -50,27 +50,15 @@ pub fn shape_and_render(
                 (glyphs, advance_width)
             });
 
-        let advance_width_adjustment;
-        if is_code {
-            match pixel_alignment_strategy {
-                PixelAlignmentStrategy::Floor(halfwidth) => {
-                    advance_width = advance_width.floor();
-                    advance_width_adjustment = halfwidth.adjustment(advance_width);
-                }
-                PixelAlignmentStrategy::Ceil => {
-                    advance_width = (advance_width / 1.2).ceil();
-                    advance_width_adjustment = 0.0;
-                }
-                PixelAlignmentStrategy::Zero => {
-                    advance_width = 0.0;
-                    advance_width_adjustment = 0.0;
-                }
-            }
-        } else {
-            advance_width_adjustment = 0.0;
-        }
+        let advance_width = if is_code {
+            let advance_width = pixel_alignment_strategy.with_advance_width(advance_width);
+            let advance_width_adjustment = advance_width.adjustment();
+            let advance_width = advance_width.into_inner();
 
-        advance_width += advance_width_adjustment;
+            advance_width + advance_width_adjustment
+        } else {
+            advance_width
+        };
 
         if !glyphs.is_empty() || glyph_cluster.is_empty() {
             if !entries.contains_key(&entry_key) {

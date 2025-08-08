@@ -1,3 +1,5 @@
+use crate::mplus::font::{Font, FontWidth};
+
 #[derive(Clone, Copy)]
 pub struct Halfwidth(pub f32);
 
@@ -6,6 +8,12 @@ pub enum PixelAlignmentStrategy {
     Floor(Halfwidth),
     Ceil,
     Zero,
+}
+
+#[derive(Clone)]
+pub struct AdjustableAdvanceWidth {
+    strategy: PixelAlignmentStrategy,
+    advance_width: f32,
 }
 
 impl Halfwidth {
@@ -31,5 +39,43 @@ impl PixelAlignmentStrategy {
             ..2.0 => PixelAlignmentStrategy::Ceil,
             _ => PixelAlignmentStrategy::Floor(Halfwidth(pixels_per_em * em_per_halfwidth)),
         }
+    }
+
+    pub fn from_font(font: &Font, pixels_per_em: f32) -> Self {
+        let em_per_halfwidth = match *font {
+            Font::MPLUSCode {
+                variable: (.., FontWidth(units)),
+                ..
+            } => f32::from(units).mul_add(0.4 / 100.0, 0.1),
+            _ => 0.5,
+        };
+
+        Self::new(pixels_per_em, em_per_halfwidth)
+    }
+
+    pub fn with_advance_width(&self, advance_width: f32) -> AdjustableAdvanceWidth {
+        let advance_width = match self {
+            PixelAlignmentStrategy::Floor(_) => advance_width.floor(),
+            PixelAlignmentStrategy::Ceil => (advance_width / 1.2).ceil(),
+            PixelAlignmentStrategy::Zero => 0.0,
+        };
+
+        AdjustableAdvanceWidth {
+            strategy: *self,
+            advance_width,
+        }
+    }
+}
+
+impl AdjustableAdvanceWidth {
+    pub fn adjustment(&self) -> f32 {
+        match self.strategy {
+            PixelAlignmentStrategy::Floor(halfwidth) => halfwidth.adjustment(self.advance_width),
+            PixelAlignmentStrategy::Ceil | PixelAlignmentStrategy::Zero => 0.0,
+        }
+    }
+
+    pub fn into_inner(self) -> f32 {
+        self.advance_width
     }
 }
