@@ -53,8 +53,8 @@ impl ToTokens for GlyphList {
 
         let glyph = match previous_glyph {
             Some((x_offset, y_offset, glyph)) => {
-                debug_assert_eq!(0.0, x_offset, "expected glyph with no horizontal offset",);
-                debug_assert_eq!(0.0, y_offset, "expected glyph with no vertical offset",);
+                debug_assert_eq!(0.0, x_offset, "expected glyph with no horizontal offset");
+                debug_assert_eq!(0.0, y_offset, "expected glyph with no vertical offset");
 
                 glyph
             }

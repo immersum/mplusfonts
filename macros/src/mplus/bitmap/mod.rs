@@ -3,6 +3,7 @@ mod dict;
 mod font;
 mod glyph;
 mod image;
+mod units;
 
 pub mod from_outline;
 

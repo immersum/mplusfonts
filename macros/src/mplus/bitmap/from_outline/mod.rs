@@ -1,12 +1,12 @@
 mod glyph;
-mod halfwidth;
-mod strings;
+mod string;
 
 use std::collections::BTreeMap;
 use std::sync::RwLock;
 use std::{iter, thread};
 
-use halfwidth::PixelAlignmentStrategy;
+use glyph::{GlyphAligner, GlyphOffsets};
+use string::StringRefList;
 use swash::scale::ScaleContext;
 use swash::shape::ShapeContext;
 
@@ -21,7 +21,7 @@ pub fn render(args: &Arguments, is_fallback: bool) -> BTreeMap<String, CharmapEn
     let font = args.font.value();
     let font_ref = font.as_ref(is_fallback);
     let is_code = matches!(font, Font::MPLUSCode { .. });
-    if is_fallback && !is_code {
+    if !is_code && is_fallback {
         return entries;
     }
 
@@ -48,8 +48,7 @@ pub fn render(args: &Arguments, is_fallback: bool) -> BTreeMap<String, CharmapEn
 
     let pixels_per_em = args.size.into_value();
     let glyph_metrics = font_ref.glyph_metrics(&coords).scale(pixels_per_em);
-
-    let pixel_alignment_strategy = PixelAlignmentStrategy::from_font(font, pixels_per_em);
+    let glyph_aligner = GlyphAligner::from_font(font, pixels_per_em);
 
     let mut contexts: Vec<_> = iter::repeat_with(ShapeContext::new)
         .take(thread::available_parallelism().map(Into::into).unwrap_or(1))
@@ -83,16 +82,10 @@ pub fn render(args: &Arguments, is_fallback: bool) -> BTreeMap<String, CharmapEn
     let mut scalers: Vec<_> = scalers.collect();
     let scalers = scalers.chunks_mut(positions as usize);
     let renders = scalers.map(|scalers| {
-        move |glyph_offsets| {
-            glyph::scale(
-                scalers,
-                is_code,
-                pixel_alignment_strategy,
-                positions,
-                bit_depth,
-                &glyph_metrics,
-                glyph_offsets,
-            )
+        let glyph_metrics = &glyph_metrics;
+        let glyph_aligner = &glyph_aligner;
+        move |glyph_offsets: GlyphOffsets| {
+            glyph_offsets.scale(scalers, positions, bit_depth, glyph_metrics, glyph_aligner)
         }
     });
 
@@ -118,24 +111,18 @@ pub fn render(args: &Arguments, is_fallback: bool) -> BTreeMap<String, CharmapEn
             strings
         });
 
+    let strings = strings.into_iter().map(StringRefList);
     let entries = RwLock::new(entries);
     thread::scope(|scope| {
         let entries = CharDictionary::new(&entries);
+        let glyph_aligner = &glyph_aligner;
         shapers
             .into_iter()
             .zip(renders)
             .zip(strings)
             .for_each(|((shaper, render), strings)| {
                 scope.spawn(move || {
-                    strings::shape_and_render(
-                        entries,
-                        shaper,
-                        render,
-                        is_fallback,
-                        is_code,
-                        pixel_alignment_strategy,
-                        strings,
-                    )
+                    strings.shape_and_render(entries, shaper, render, glyph_aligner, is_fallback)
                 });
             });
     });

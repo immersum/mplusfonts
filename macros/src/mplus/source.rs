@@ -14,38 +14,32 @@ pub enum CharSource {
 impl CharSource {
     pub fn strings(&self, is_code: bool) -> impl IntoIterator<Item = Cow<'_, [String]>> {
         match *self {
-            CharSource::Strings(ref strings) => {
+            Self::Strings(ref strings) => {
                 let array = [strings.into()];
 
                 Vec::from_iter(array)
             }
-            CharSource::Range(start, end) => {
+            Self::Range(start, end) => {
                 let array = [single_char_strings(start, end).into()];
 
                 Vec::from_iter(array)
             }
-            CharSource::Kern(start, end, ref strings) if is_code => {
+            Self::Kern(start, end, ref strings) if is_code => {
                 let array = [single_char_strings(start, end).into(), strings.into()];
 
                 Vec::from_iter(array)
             }
-            CharSource::Kern(bound @ Bound::Excluded(start), end, ref strings)
-                if start > '\u{24E}' =>
-            {
+            Self::Kern(bound @ Bound::Excluded(start), end, ref strings) if start > '\u{24E}' => {
                 let array = [single_char_strings(bound, end).into(), strings.into()];
 
                 Vec::from_iter(array)
             }
-            CharSource::Kern(bound @ Bound::Included(start), end, ref strings)
-                if start > '\u{24F}' =>
-            {
+            Self::Kern(bound @ Bound::Included(start), end, ref strings) if start > '\u{24F}' => {
                 let array = [single_char_strings(bound, end).into(), strings.into()];
 
                 Vec::from_iter(array)
             }
-            CharSource::Kern(start, bound @ Bound::Included(end), ref strings)
-                if end < '\u{250}' =>
-            {
+            Self::Kern(start, bound @ Bound::Included(end), ref strings) if end < '\u{250}' => {
                 let array = [
                     single_char_strings(start, bound).into(),
                     strings.into(),
@@ -55,9 +49,7 @@ impl CharSource {
 
                 Vec::from_iter(array)
             }
-            CharSource::Kern(start, bound @ Bound::Excluded(end), ref strings)
-                if end < '\u{251}' =>
-            {
+            Self::Kern(start, bound @ Bound::Excluded(end), ref strings) if end < '\u{251}' => {
                 let array = [
                     single_char_strings(start, bound).into(),
                     strings.into(),
@@ -67,7 +59,7 @@ impl CharSource {
 
                 Vec::from_iter(array)
             }
-            CharSource::Kern(start, end, ref strings) => {
+            Self::Kern(start, end, ref strings) => {
                 let bound = Bound::Excluded('\u{250}');
                 let array = [
                     single_char_strings(start, end).into(),
