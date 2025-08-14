@@ -54,8 +54,8 @@ impl StringRefList<'_> {
             for glyph in glyphs {
                 advance_width += glyph.advance;
                 glyph_offsets.push({
-                    let mut glyph_offsets = GlyphOffsets(glyph.id, glyph.x, glyph.y);
-                    glyph_offsets.patch(is_variable_width, is_overlay);
+                    let mut glyph_offsets = GlyphOffsets::from_glyph(glyph, is_overlay);
+                    glyph_offsets.patch(is_variable_width);
 
                     glyph_offsets
                 });

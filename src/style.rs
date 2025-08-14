@@ -160,7 +160,7 @@ macro_rules! impl_text_renderer {
                         let clip_area = if let Some(previous_image) = previous_image.as_ref() {
                             let previous_image_box = previous_image.bounding_box();
                             let clip_area = previous_image_box.right_half();
-                            if clip_area.top_left.x > image_box.top_left.x && is_overlay {
+                            if is_overlay {
                                 for quadrant in previous_line_pieces.take().iter().flatten() {
                                     quadrant.draw_styled(&background_style, target)?;
                                 }

@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- The const generic parameter `N` in `NextGlyph<'_, _, N>` is now always equal to `positions`, even
+  if there is only one glyph image. This fixes monospaced fonts that include diacritical marks when
+  `positions` is greater than one.
+- The _x_-positions of diacritical marks for decomposed characters. The _y_-positions are still off
+  compared to how they appear in precomposed characters, and without multiple renders per position,
+  there will not be an improvement due to fractional _y_-offsets.
+
 ## [0.2.1] - 2025-08-06
 
 ### Fixed
