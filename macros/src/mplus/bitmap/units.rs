@@ -1,7 +1,11 @@
 use crate::mplus::font::{Font, FontWidth};
 
 #[derive(Clone, Copy)]
-pub struct Halfwidth(pub f32);
+pub enum Halfwidth {
+    Floor(f32),
+    Ceil,
+    Zero,
+}
 
 impl Halfwidth {
     pub fn from_font(font: &Font, pixels_per_em: f32) -> Self {
@@ -13,6 +17,10 @@ impl Halfwidth {
             _ => 0.5,
         };
 
-        Self(pixels_per_em * em_per_halfwidth)
+        match pixels_per_em {
+            ..1.25 => Self::Zero,
+            ..2.0 => Self::Ceil,
+            _ => Self::Floor(pixels_per_em * em_per_halfwidth),
+        }
     }
 }

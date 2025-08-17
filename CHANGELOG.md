@@ -1,15 +1,15 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.2] - 2025-08-17
 
 ### Fixed
 
 - The const generic parameter `N` in `NextGlyph<'_, _, N>` is now always equal to `positions`, even
   if there is only one glyph image. This fixes monospaced fonts that include diacritical marks when
   `positions` is greater than one.
-- The _x_-positions of diacritical marks for decomposed characters. The _y_-positions are still off
-  compared to how they appear in precomposed characters, and without multiple renders per position,
-  there will not be an improvement due to fractional _y_-offsets.
+- The relative positions of diacritical marks for decomposed characters. Their _y_-offsets are also
+  set correctly for font rasterization and rendering. Note that the use of `hint` results in visual
+  dissimilarity to diacritical marks in precomposed characters.
 
 ## [0.2.1] - 2025-08-06
 
@@ -98,3 +98,4 @@
 [0.1.5]: https://github.com/immersum/mplusfonts/releases/tag/v0.1.5
 [0.2.0]: https://github.com/immersum/mplusfonts/releases/tag/v0.2.0
 [0.2.1]: https://github.com/immersum/mplusfonts/releases/tag/v0.2.1
+[0.2.2]: https://github.com/immersum/mplusfonts/releases/tag/v0.2.2

@@ -1,9 +1,11 @@
+use std::iter;
+
 use swash::shape::Shaper;
 use swash::text::cluster::SourceRange;
 
 use crate::mplus::bitmap::{CharDictionary, CharDictionaryKey, Glyph};
 
-use super::glyph::{GlyphAligner, GlyphOffsets};
+use super::glyph::{GlyphOffsets, GlyphSpacing};
 
 pub struct StringRefList<'a>(pub Vec<&'a String>);
 
@@ -13,7 +15,7 @@ impl StringRefList<'_> {
         entries: CharDictionary,
         mut shaper: Shaper,
         mut render: impl FnMut(GlyphOffsets) -> Glyph,
-        glyph_aligner: &GlyphAligner,
+        glyph_spacing: &GlyphSpacing,
         is_fallback: bool,
     ) {
         let Self(strings) = self;
@@ -47,22 +49,19 @@ impl StringRefList<'_> {
                 .filter(|glyph| glyph.id > 0 || entry_key.as_ref() == "\u{FFFD}")
                 .peekable();
 
-            let is_variable_width = glyph_aligner.is_code && !is_fallback;
             let mut advance_width = 0.0;
             let mut glyph_offsets = Vec::new();
-            let mut is_overlay = false;
-            for glyph in glyphs {
+            for (glyph, is_overlay) in glyphs.zip(iter::once(false).chain(iter::repeat(true))) {
                 advance_width += glyph.advance;
                 glyph_offsets.push({
                     let mut glyph_offsets = GlyphOffsets::from_glyph(glyph, is_overlay);
-                    glyph_offsets.patch(is_variable_width);
+                    glyph_offsets.patch(glyph_spacing.is_code && !is_fallback);
 
                     glyph_offsets
                 });
-                is_overlay = true;
             }
 
-            let advance_width = glyph_aligner.round_halfwidths(advance_width);
+            let advance_width = glyph_spacing.halfwidths(advance_width);
 
             if !glyph_offsets.is_empty() || glyph_cluster.is_empty() {
                 if !entries.contains_key(&entry_key) {

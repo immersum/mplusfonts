@@ -80,9 +80,6 @@ For more examples, see the [examples] folder.
 
 ## Limitations
 
-* ~Rendering [combining characters](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks) with
-  characters for which no single code point exists, is a hit-or-miss.~
-  <sup>_* Starting with the next release, diacritical mark rendering should be less glitchy._</sup>
 * **Transparent backgrounds are not supported.** Alpha compositing is not available; this crate
   does not have an `alloc` feature.
 

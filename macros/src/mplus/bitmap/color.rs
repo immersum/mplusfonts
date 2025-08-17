@@ -8,9 +8,7 @@ pub fn quantize(image_data: &[u8], image_width: u32, bit_depth: u8) -> Vec<u8> {
     };
     let mut bytes = Vec::new();
     let mut rows = image_data.chunks_exact(image_width as usize);
-    let divisor = u8::try_from(255 / (2u32.pow(bit_depth.into()) - 1))
-        .expect("expected one of: `1`, `17`, `85`, `255`");
-
+    let divisor = 255 / 2u8.wrapping_pow(bit_depth.into()).wrapping_sub(1);
     for row_data in rows.by_ref() {
         let mut chunks = row_data.chunks_exact(pixels_per_byte as usize);
         for chunk in chunks.by_ref() {

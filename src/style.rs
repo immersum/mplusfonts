@@ -153,7 +153,7 @@ macro_rules! impl_text_renderer {
                     for (image, is_overlay) in images {
                         let image_box = image.bounding_box();
                         let x = image_box.top_left.x.saturating_add_unsigned(image_box.size.width);
-                        if x > right {
+                        if x > right && !is_overlay {
                             right = x;
                         }
 
