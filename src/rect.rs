@@ -28,6 +28,10 @@ pub trait RectangleExt {
     /// Returns the rectangle with its area reduced along the _y_-axis to the specified top and
     /// bottom rows, excluding the bottom row itself.
     fn y_reduce(&self, top: i32, bottom: i32) -> Self;
+
+    /// Returns the rectangle with its left side indented to the right, making the specified column
+    /// its new left side.
+    fn indent_to(&self, right: i32) -> Self;
 }
 
 impl RectangleExt for Rectangle {
@@ -115,6 +119,17 @@ impl RectangleExt for Rectangle {
         let height = height.try_into().unwrap_or_default();
         let size = Size::new(self.size.width, height);
         let size = self.size.component_min(size);
+
+        Self { top_left, size }
+    }
+
+    fn indent_to(&self, right: i32) -> Self {
+        let top_left = Point::new(right, self.top_left.y);
+        let top_left = self.top_left.component_max(top_left);
+        let width = right.saturating_sub(self.top_left.x);
+        let width = width.try_into().unwrap_or_default();
+        let size = Size::new(width, Default::default());
+        let size = self.size.saturating_sub(size);
 
         Self { top_left, size }
     }
@@ -538,5 +553,59 @@ mod tests {
             Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
             i32::MAX, i32::MAX,
             Rectangle::new(Point::new(1111, i32::MAX), Size::new(3333, 0)),
+    }
+
+    macro_rules! test_indent_to {
+        (
+            $(
+                $fn_ident:ident, $self:expr, $left:expr, $expected:expr,
+            )*
+        ) => {
+            $(
+                #[test]
+                fn $fn_ident() {
+                    let result = $self.indent_to($left);
+                    assert_eq!(result, $expected);
+                }
+            )*
+        }
+    }
+
+    test_indent_to! {
+        indent_to_800_for_1111_2222_3333_4444,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+            800,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+
+        indent_to_1600_for_1111_2222_3333_4444,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+            1600,
+            Rectangle::new(Point::new(1600, 2222), Size::new(3333 + 1111 - 1600, 4444)),
+
+        indent_to_3200_for_1111_2222_3333_4444,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+            3200,
+            Rectangle::new(Point::new(3200, 2222), Size::new(3333 + 1111 - 3200, 4444)),
+
+        indent_to_6400_for_1111_2222_3333_4444,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+            6400,
+            Rectangle::new(Point::new(6400, 2222), Size::new(0, 4444)),
+
+        indent_to_0_for_0_0_0_0,
+            Rectangle::new(Point::new(0, 0), Size::new(0, 0)),
+            0,
+            Rectangle::new(Point::new(0, 0), Size::new(0, 0)),
+
+        indent_to_minus_1_for_min_min_max_max,
+            Rectangle::new(Point::new(i32::MIN, i32::MIN), Size::new(u32::MAX, u32::MAX)),
+            -1,
+            Rectangle::new(Point::new(-1, i32::MIN), Size::new(u32::MAX / 2 + 1, u32::MAX)),
+
+        indent_to_minus_1_for_max_max_max_max,
+            Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
+            -1,
+            Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
+
     }
 }

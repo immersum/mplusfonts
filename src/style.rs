@@ -150,13 +150,10 @@ macro_rules! impl_text_renderer {
                     let images = images_of_chars(&self.font.charmap, text, &mut x, y as f32);
                     let mut previous_line_pieces: Option<[Rectangle; 2]> = None;
                     let mut previous_image: Option<Image<_>> = None;
+                    let mut right_of_overlay: Option<i32> = None;
                     for (image, is_overlay) in images {
                         let image_box = image.bounding_box();
                         let x = image_box.top_left.x.saturating_add_unsigned(image_box.size.width);
-                        if x > right && !is_overlay {
-                            right = x;
-                        }
-
                         let clip_area = if let Some(previous_image) = previous_image.as_ref() {
                             let previous_image_box = previous_image.bounding_box();
                             let clip_area = previous_image_box.right_half();
@@ -171,7 +168,23 @@ macro_rules! impl_text_renderer {
                                 let mut adapter = target.value_mapped(&colormap);
                                 image.clipped(&above).draw(&mut adapter)?;
                                 image.clipped(&below).draw(&mut adapter)?;
-                                image.mixed(&previous_image, &colormap).draw(target)?;
+                                image.mixed(previous_image, &colormap).draw(target)?;
+
+                                let width = x.saturating_sub(right).try_into().unwrap_or_default();
+                                let line_piece = Rectangle {
+                                    top_left: Point::new(right, top),
+                                    size: Size::new(width, height),
+                                };
+
+                                let xb_quadrant = line_piece.above(&image_box);
+                                let xp_quadrant = line_piece.below(&image_box);
+                                previous_line_pieces.replace([xb_quadrant, xp_quadrant]);
+
+                                if x > right {
+                                    right = x;
+                                }
+
+                                right_of_overlay.replace(right);
                                 continue;
                             }
 
@@ -190,23 +203,24 @@ macro_rules! impl_text_renderer {
                             let mut adapter = target.value_mapped(&colormap);
                             previous_image.clipped(&clip_area).draw(&mut adapter)?;
 
-                            let line_piece = image_box.right_of(&clip_area).y_extend(top, bottom);
+                            let line_piece = previous_image_box.y_extend(top, bottom);
+                            let line_piece = line_piece.right_of(&clip_area);
                             let dx_quadrant = line_piece.above(&image_box);
                             let qx_quadrant = line_piece.below(&image_box);
                             previous_image.clipped(&dx_quadrant).draw(&mut adapter)?;
                             previous_image.clipped(&qx_quadrant).draw(&mut adapter)?;
 
-                            let dx = dx_quadrant.right_of(&clip_area);
-                            let qx = qx_quadrant.right_of(&clip_area);
+                            let dx = dx_quadrant.indent_to(right_of_overlay.unwrap_or_default());
+                            let qx = qx_quadrant.indent_to(right_of_overlay.unwrap_or_default());
                             dx.above(&previous_image_box).draw_styled(&background_style, target)?;
                             qx.above(&previous_image_box).draw_styled(&background_style, target)?;
                             dx.below(&previous_image_box).draw_styled(&background_style, target)?;
                             qx.below(&previous_image_box).draw_styled(&background_style, target)?;
 
-                            image.mixed(&previous_image, &colormap).draw(target)?;
+                            image.mixed(previous_image, &colormap).draw(target)?;
 
                             let line_piece = line_strip.left_of(&image_box);
-                            let line_piece = line_piece.right_of(&previous_image_box);
+                            let line_piece = line_piece.indent_to(right);
                             line_piece.draw_styled(&background_style, target)?;
 
                             image_box.left_half().right_of(&previous_image_box)
@@ -218,10 +232,12 @@ macro_rules! impl_text_renderer {
                         };
 
                         let line_piece = clip_area.y_extend(top, bottom);
+                        let line_piece = line_piece.indent_to(right);
                         line_piece.above(&image_box).draw_styled(&background_style, target)?;
                         line_piece.below(&image_box).draw_styled(&background_style, target)?;
 
-                        let line_piece = image_box.right_of(&clip_area).y_extend(top, bottom);
+                        let line_piece = image_box.y_extend(top, bottom);
+                        let line_piece = line_piece.right_of(&clip_area);
                         let xb_quadrant = line_piece.above(&image_box);
                         let xp_quadrant = line_piece.below(&image_box);
                         previous_line_pieces.replace([xb_quadrant, xp_quadrant]);
@@ -229,6 +245,10 @@ macro_rules! impl_text_renderer {
                         let mut adapter = target.value_mapped(&colormap);
                         image.clipped(&clip_area).draw(&mut adapter)?;
                         previous_image.replace(image);
+
+                        if x > right {
+                            right = x;
+                        }
                     }
 
                     if let Some(previous_image) = previous_image.take() {
