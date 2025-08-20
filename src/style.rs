@@ -223,6 +223,10 @@ macro_rules! impl_text_renderer {
                             let line_piece = line_piece.indent_to(right);
                             line_piece.draw_styled(&background_style, target)?;
 
+                            let negative_space = previous_image_box.extrude_to(right);
+                            let negative_space = negative_space.right_of(&previous_image_box);
+                            negative_space.draw_styled(&background_style, target)?;
+
                             image_box.left_half().right_of(&previous_image_box)
                         } else {
                             let line_piece = line_strip.left_of(&image_box);

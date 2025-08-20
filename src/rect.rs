@@ -32,6 +32,10 @@ pub trait RectangleExt {
     /// Returns the rectangle with its left side indented to the right, making the specified column
     /// its new left side.
     fn indent_to(&self, right: i32) -> Self;
+
+    /// Returns the rectangle with its right side extruded to the right, making the specified column
+    /// its new right side.
+    fn extrude_to(&self, right: i32) -> Self;
 }
 
 impl RectangleExt for Rectangle {
@@ -130,6 +134,16 @@ impl RectangleExt for Rectangle {
         let width = width.try_into().unwrap_or_default();
         let size = Size::new(width, Default::default());
         let size = self.size.saturating_sub(size);
+
+        Self { top_left, size }
+    }
+
+    fn extrude_to(&self, right: i32) -> Self {
+        let top_left = self.top_left;
+        let width = right.saturating_sub(self.top_left.x);
+        let width = width.try_into().unwrap_or_default();
+        let size = Size::new(width, Default::default());
+        let size = self.size.component_max(size);
 
         Self { top_left, size }
     }
@@ -558,13 +572,13 @@ mod tests {
     macro_rules! test_indent_to {
         (
             $(
-                $fn_ident:ident, $self:expr, $left:expr, $expected:expr,
+                $fn_ident:ident, $self:expr, $right:expr, $expected:expr,
             )*
         ) => {
             $(
                 #[test]
                 fn $fn_ident() {
-                    let result = $self.indent_to($left);
+                    let result = $self.indent_to($right);
                     assert_eq!(result, $expected);
                 }
             )*
@@ -605,6 +619,60 @@ mod tests {
         indent_to_minus_1_for_max_max_max_max,
             Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
             -1,
+            Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
+
+    }
+
+    macro_rules! test_extrude_to {
+        (
+            $(
+                $fn_ident:ident, $self:expr, $right:expr, $expected:expr,
+            )*
+        ) => {
+            $(
+                #[test]
+                fn $fn_ident() {
+                    let result = $self.extrude_to($right);
+                    assert_eq!(result, $expected);
+                }
+            )*
+        }
+    }
+
+    test_extrude_to! {
+        extrude_to_800_for_1111_2222_3333_4444,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+            800,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+
+        extrude_to_1600_for_1111_2222_3333_4444,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+            1600,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+
+        extrude_to_3200_for_1111_2222_3333_4444,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+            3200,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+
+        extrude_to_6400_for_1111_2222_3333_4444,
+            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
+            6400,
+            Rectangle::new(Point::new(1111, 2222), Size::new(6400 - 1111, 4444)),
+
+        extrude_to_max_for_0_0_0_0,
+            Rectangle::new(Point::new(0, 0), Size::new(0, 0)),
+            i32::MAX,
+            Rectangle::new(Point::new(0, 0), Size::new(u32::MAX / 2, 0)),
+
+        extrude_to_max_for_min_min_max_max,
+            Rectangle::new(Point::new(i32::MIN, i32::MIN), Size::new(u32::MAX, u32::MAX)),
+            i32::MAX,
+            Rectangle::new(Point::new(i32::MIN, i32::MIN), Size::new(u32::MAX, u32::MAX)),
+
+        extrude_to_max_for_max_max_max_max,
+            Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
+            i32::MAX,
             Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
 
     }
