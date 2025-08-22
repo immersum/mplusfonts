@@ -148,142 +148,109 @@ macro_rules! impl_text_renderer {
 
                     let colormap = Colormap::linear(self.background_color(), self.text_color());
                     let images = images_of_chars(&self.font.charmap, text, &mut x, y as f32);
-                    let mut spaces_to_fill: Option<[Rectangle; 2]> = None;
                     let mut previous_image: Option<Image<_>> = None;
-                    let mut right_of_overlay: Option<i32> = None;
+                    let mut previous_right = right;
                     for (image, is_overlay) in images {
                         let image_box = image.bounding_box();
                         let x = image_box.top_left.x.saturating_add_unsigned(image_box.size.width);
-                        let left_half = if let Some(previous_image) = previous_image.as_ref() {
+                        if x > right {
+                            right = x;
+                        }
+
+                        let line_piece = line_strip.left_of(&image_box);
+                        let clip_area = if let Some(previous_image) = previous_image.as_ref() {
                             let previous_image_box = previous_image.bounding_box();
-                            if is_overlay {
-                                for space in spaces_to_fill.take().iter().flatten() {
-                                    space.draw_styled(&background_style, target)?;
-                                }
+                            let previous_right_half = previous_image_box.indent_to(previous_right);
+                            let line_piece = line_piece.right_of(&previous_right_half);
+                            line_piece.draw_styled(&background_style, target)?;
 
+                            let left = previous_right_half.left_of(&image_box);
+                            let left = left.y_extend(top, bottom);
+                            let right = previous_right_half.right_of(&image_box);
+                            let right = right.y_extend(top, bottom);
+                            let middle = previous_right_half.left_of(&right).right_of(&left);
+                            let middle = middle.y_extend(top, bottom);
+                            let above = middle.above(&image_box);
+                            let below = middle.below(&image_box);
+                            for clip_area in [left, right, above, below] {
+                                let mut adapter = target.value_mapped(&colormap);
+                                previous_image.clipped(&clip_area).draw(&mut adapter)?;
+
+                                let above = clip_area.above(&previous_image_box);
+                                let below = clip_area.below(&previous_image_box);
+                                for fill_area in [above, below] {
+                                    fill_area.draw_styled(&background_style, target)?;
+                                }
+                            }
+
+                            let image_box = if is_overlay {
                                 let image_box = image_box.y_reduce(top, bottom);
-                                let above = image_box.above(&previous_image_box);
-                                let below = image_box.below(&previous_image_box);
-                                for space in [above, below] {
-                                    let mut adapter = target.value_mapped(&colormap);
-                                    image.clipped(&space).draw(&mut adapter)?;
-                                }
-
-                                image.mixed(previous_image, &colormap).draw(target)?;
-
-                                let width = x.saturating_sub(right);
-                                let width = width.try_into().unwrap_or_default();
-                                let right_to_end = Rectangle {
-                                    top_left: Point::new(right, top),
-                                    size: Size::new(width, height),
-                                };
-
-                                let above = right_to_end.above(&image_box);
-                                let below = right_to_end.below(&image_box);
-                                spaces_to_fill.replace([above, below]);
-
-                                if x > right {
-                                    right = x;
-                                }
-
-                                right_of_overlay.replace(right);
-                                continue;
-                            }
-
-                            for space in spaces_to_fill.take().iter().flatten() {
+                                let clip_area = image_box.left_of(&previous_image_box);
                                 let mut adapter = target.value_mapped(&colormap);
-                                image.clipped(&space).draw(&mut adapter)?;
+                                image.clipped(&clip_area).draw(&mut adapter)?;
 
-                                let above = space.above(&image_box);
-                                let below = space.below(&image_box);
-                                let space = space.left_of(&image_box);
-                                for space in [above, below, space] {
-                                    space.draw_styled(&background_style, target)?;
-                                }
-                            }
+                                image_box
+                            } else {
+                                image_box.left_half()
+                            };
 
-                            let previous_right_half = previous_image_box.right_half();
-                            let previous_right_half = previous_right_half.left_of(&image_box);
-                            let mut adapter = target.value_mapped(&colormap);
-                            previous_image.clipped(&previous_right_half).draw(&mut adapter)?;
-
-                            let previous_right = previous_image_box.right_of(&previous_right_half);
-                            let previous_right = previous_right.y_extend(top, bottom);
-                            let above = previous_right.above(&image_box);
-                            let below = previous_right.below(&image_box);
-                            for space in [above, below] {
+                            let column = previous_image_box.y_extend(top, bottom);
+                            let above = column.above(&previous_image_box);
+                            let below = column.below(&previous_image_box);
+                            for clip_area in [above, below] {
                                 let mut adapter = target.value_mapped(&colormap);
-                                previous_image.clipped(&space).draw(&mut adapter)?;
-
-                                let right = right_of_overlay.unwrap_or_default();
-                                let space = space.indent_to(right);
-                                let above = space.above(&previous_image_box);
-                                let below = space.below(&previous_image_box);
-                                for space in [above, below] {
-                                    space.draw_styled(&background_style, target)?;
-                                }
+                                image.clipped(&clip_area).draw(&mut adapter)?;
                             }
 
                             image.mixed(previous_image, &colormap).draw(target)?;
 
-                            let left_to_start = line_strip.left_of(&image_box);
-                            let left_to_start = left_to_start.indent_to(right);
-                            left_to_start.draw_styled(&background_style, target)?;
-
-                            let negative_space = previous_image_box.extrude_to(right);
-                            let negative_space = negative_space.right_of(&previous_image_box);
-                            negative_space.draw_styled(&background_style, target)?;
-
-                            image_box.left_half().right_of(&previous_image_box)
+                            image_box.right_of(&previous_image_box)
                         } else {
-                            let left_to_start = line_strip.left_of(&image_box);
-                            left_to_start.draw_styled(&background_style, target)?;
+                            line_piece.draw_styled(&background_style, target)?;
 
                             image_box.left_half()
                         };
-                        let left_of_center = left_half.y_extend(top, bottom);
-                        let left_of_center = left_of_center.indent_to(right);
-                        let above = left_of_center.above(&image_box);
-                        let below = left_of_center.below(&image_box);
-                        for space in [above, below] {
-                            space.draw_styled(&background_style, target)?;
-                        }
-
-                        let right_half = image_box.right_of(&left_half);
-                        let right_of_center = right_half.y_extend(top, bottom);
-                        let above = right_of_center.above(&image_box);
-                        let below = right_of_center.below(&image_box);
-                        spaces_to_fill.replace([above, below]);
-
                         let mut adapter = target.value_mapped(&colormap);
-                        image.clipped(&left_half).draw(&mut adapter)?;
-                        previous_image.replace(image);
+                        image.clipped(&clip_area).draw(&mut adapter)?;
 
-                        if x > right {
-                            right = x;
+                        let right = clip_area.indent_to(previous_right);
+                        let column = right.y_extend(top, bottom);
+                        let above = column.above(&image_box);
+                        let below = column.below(&image_box);
+                        for fill_area in [above, below] {
+                            fill_area.draw_styled(&background_style, target)?;
                         }
+
+                        if !is_overlay {
+                            previous_image.replace(image);
+                        }
+
+                        previous_right = right.top_left.x.saturating_add_unsigned(right.size.width);
                     }
 
                     if let Some(previous_image) = previous_image.take() {
-                        for space in spaces_to_fill.take().iter().flatten() {
-                            space.draw_styled(&background_style, target)?;
-                        }
-
                         let previous_image_box = previous_image.bounding_box();
-                        let clip_area = previous_image_box.right_half();
+                        let previous_right_half = previous_image_box.indent_to(previous_right);
                         let mut adapter = target.value_mapped(&colormap);
-                        previous_image.clipped(&clip_area).draw(&mut adapter)?;
+                        previous_image.clipped(&previous_right_half).draw(&mut adapter)?;
+
+                        let column = previous_right_half.y_extend(top, bottom);
+                        let above = column.above(&previous_image_box);
+                        let below = column.below(&previous_image_box);
+                        for fill_area in [above, below] {
+                            fill_area.draw_styled(&background_style, target)?;
+                        }
                     }
 
                     let width = (x as i32).saturating_sub(right);
                     let width = width.try_into().unwrap_or_default();
-                    let right_to_end = Rectangle {
+                    let line_piece = Rectangle {
                         top_left: Point::new(right, top),
                         size: Size::new(width, height),
                     };
 
                     let next_position = Point::new(x as i32, position.y);
-                    right_to_end.draw_styled(&background_style, target)?;
+                    line_piece.draw_styled(&background_style, target)?;
 
                     let right = i32::max(x as i32, right);
                     let width = right.saturating_sub(position.x);

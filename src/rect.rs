@@ -6,9 +6,6 @@ pub trait RectangleExt {
     /// Returns the left half of the rectangle, rounding down the resulting width.
     fn left_half(&self) -> Self;
 
-    /// Returns the right half of the rectangle, rounding up the resulting width.
-    fn right_half(&self) -> Self;
-
     /// Returns the rectangle's area that only has pixels to the left of the specified area.
     fn left_of(&self, other: &Self) -> Self;
 
@@ -32,10 +29,6 @@ pub trait RectangleExt {
     /// Returns the rectangle with its left side indented to the right, making the specified column
     /// its new left side.
     fn indent_to(&self, right: i32) -> Self;
-
-    /// Returns the rectangle with its right side extruded to the right, making the specified column
-    /// its new right side.
-    fn extrude_to(&self, right: i32) -> Self;
 }
 
 impl RectangleExt for Rectangle {
@@ -43,16 +36,6 @@ impl RectangleExt for Rectangle {
         let width = self.size.width.checked_div(2).unwrap_or_default();
         let top_left = self.top_left;
         let size = Size::new(width, self.size.height);
-
-        Self { top_left, size }
-    }
-
-    fn right_half(&self) -> Self {
-        let width = self.size.width.checked_div(2).unwrap_or_default();
-        let left = self.top_left.x.saturating_add_unsigned(width);
-        let top_left = Point::new(left, self.top_left.y);
-        let size = Size::new(width, Default::default());
-        let size = self.size.saturating_sub(size);
 
         Self { top_left, size }
     }
@@ -137,16 +120,6 @@ impl RectangleExt for Rectangle {
 
         Self { top_left, size }
     }
-
-    fn extrude_to(&self, right: i32) -> Self {
-        let top_left = self.top_left;
-        let width = right.saturating_sub(self.top_left.x);
-        let width = width.try_into().unwrap_or_default();
-        let size = Size::new(width, Default::default());
-        let size = self.size.component_max(size);
-
-        Self { top_left, size }
-    }
 }
 
 #[cfg(test)]
@@ -185,40 +158,6 @@ mod tests {
         left_half_of_max_max_max_max,
             Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
             Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX / 2, u32::MAX)),
-    }
-
-    macro_rules! test_right_half {
-        (
-            $(
-                $fn_ident:ident, $self:expr, $expected:expr,
-            )*
-        ) => {
-            $(
-                #[test]
-                fn $fn_ident() {
-                    let result = $self.right_half();
-                    assert_eq!(result, $expected);
-                }
-            )*
-        }
-    }
-
-    test_right_half! {
-        right_half_of_1111_2222_3333_4444,
-            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
-            Rectangle::new(Point::new(1111 + 3333 / 2, 2222), Size::new(3333 / 2 + 1, 4444)),
-
-        right_half_of_0_0_0_0,
-            Rectangle::new(Point::new(0, 0), Size::new(0, 0)),
-            Rectangle::new(Point::new(0, 0), Size::new(0, 0)),
-
-        right_half_of_min_min_max_max,
-            Rectangle::new(Point::new(i32::MIN, i32::MIN), Size::new(u32::MAX, u32::MAX)),
-            Rectangle::new(Point::new(-1, i32::MIN), Size::new(u32::MAX / 2 + 1, u32::MAX)),
-
-        right_half_of_max_max_max_max,
-            Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
-            Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX / 2 + 1, u32::MAX)),
     }
 
     macro_rules! test_left_of {
@@ -620,60 +559,5 @@ mod tests {
             Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
             -1,
             Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
-
-    }
-
-    macro_rules! test_extrude_to {
-        (
-            $(
-                $fn_ident:ident, $self:expr, $right:expr, $expected:expr,
-            )*
-        ) => {
-            $(
-                #[test]
-                fn $fn_ident() {
-                    let result = $self.extrude_to($right);
-                    assert_eq!(result, $expected);
-                }
-            )*
-        }
-    }
-
-    test_extrude_to! {
-        extrude_to_800_for_1111_2222_3333_4444,
-            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
-            800,
-            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
-
-        extrude_to_1600_for_1111_2222_3333_4444,
-            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
-            1600,
-            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
-
-        extrude_to_3200_for_1111_2222_3333_4444,
-            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
-            3200,
-            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
-
-        extrude_to_6400_for_1111_2222_3333_4444,
-            Rectangle::new(Point::new(1111, 2222), Size::new(3333, 4444)),
-            6400,
-            Rectangle::new(Point::new(1111, 2222), Size::new(6400 - 1111, 4444)),
-
-        extrude_to_max_for_0_0_0_0,
-            Rectangle::new(Point::new(0, 0), Size::new(0, 0)),
-            i32::MAX,
-            Rectangle::new(Point::new(0, 0), Size::new(u32::MAX / 2, 0)),
-
-        extrude_to_max_for_min_min_max_max,
-            Rectangle::new(Point::new(i32::MIN, i32::MIN), Size::new(u32::MAX, u32::MAX)),
-            i32::MAX,
-            Rectangle::new(Point::new(i32::MIN, i32::MIN), Size::new(u32::MAX, u32::MAX)),
-
-        extrude_to_max_for_max_max_max_max,
-            Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
-            i32::MAX,
-            Rectangle::new(Point::new(i32::MAX, i32::MAX), Size::new(u32::MAX, u32::MAX)),
-
     }
 }
