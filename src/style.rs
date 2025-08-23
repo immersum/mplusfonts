@@ -148,6 +148,7 @@ macro_rules! impl_text_renderer {
 
                     let colormap = Colormap::linear(self.background_color(), self.text_color());
                     let images = images_of_chars(&self.font.charmap, text, &mut x, y as f32);
+                    let mut image_before_overlays: Option<Image<_>> = None;
                     let mut previous_image: Option<Image<_>> = None;
                     let mut previous_right = right;
                     for (image, is_overlay) in images {
@@ -155,6 +156,10 @@ macro_rules! impl_text_renderer {
                         let x = image_box.top_left.x.saturating_add_unsigned(image_box.size.width);
                         if x > right {
                             right = x;
+                        }
+
+                        if !is_overlay && image_before_overlays.is_some() {
+                            previous_image = image_before_overlays.take();
                         }
 
                         let line_piece = line_strip.left_of(&image_box);
@@ -221,8 +226,9 @@ macro_rules! impl_text_renderer {
                             fill_area.draw_styled(&background_style, target)?;
                         }
 
-                        if !is_overlay {
-                            previous_image.replace(image);
+                        let previous_image = previous_image.replace(image);
+                        if is_overlay && image_before_overlays.is_none() {
+                            image_before_overlays = previous_image;
                         }
 
                         previous_right = right.top_left.x.saturating_add_unsigned(right.size.width);
